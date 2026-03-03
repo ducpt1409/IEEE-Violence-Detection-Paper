@@ -1,0 +1,24 @@
+# LaTeX build artifacts
+*.aux
+*.bbl
+*.blg
+*.log
+*.fdb_latexmk
+*.fls
+*.synctex.gz
+*.out
+*.toc
+*.lof
+*.lot
+*.nav
+*.snm
+*.vrb
+
+# Compiled PDF (uncomment if you want to track the PDF)
+# *.pdf
+
+# macOS
+.DS_Store
+
+# Output directory
+%OUTDIR%/
