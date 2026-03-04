@@ -368,21 +368,21 @@ Thanks to the temporal self-attention mechanism, the model can distinguish betwe
 
 \subsubsection{Integrating Swin and Temporal Transformer in the Multi-stage Pipeline}
 
-Stage B doesn't try to process entire frames right away. Instead, it works on a smaller set of ROIs that have already made it through earlier filtering steps. The pipeline first detects and tracks groups of people to find areas where interactions might be happening. Then a motion-based filter weeds out the stuff that's clearly not violent. Only what's left gets passed to Stage B for deeper analysis.
+Stage~B operates exclusively on the subset of ROIs that pass Stage~A filtering, rather than processing full frames directly. The preceding stages first detect and track human groups to localize potential interaction regions, then apply motion- and dynamics-based screening to reject evidently non-violent activities. Consequently, Stage~B receives a substantially reduced set of high-risk candidates for fine-grained recognition.
 
-Here's how it works: the Swin Transformer takes care of spatial encoding within each ROI, capturing the fine-grained details. The Temporal Transformer, meanwhile, pieces together how behaviors unfold over time. This setup lets the system look at both local interactions between people and the broader context of what's happening in the scene.
+Within Stage~B, the Swin Transformer performs spatial encoding for each ROI frame and extracts hierarchical local descriptors, while the Temporal Transformer models behavioral evolution across time. This design enables joint reasoning over (i) fine-grained interpersonal interactions at the ROI level and (ii) clip-level temporal context.
 
-For each ROI that survives the filters, we pull out a short clip - $T$ consecutive frames. Each frame goes through a shared Swin backbone to get frame-level descriptors. These descriptors then go into the Temporal Transformer, which builds a clip-level representation. That final output tells us whether we're looking at violence or not.
+For each candidate ROI, a short clip of $T$ consecutive frames is constructed. Each frame is encoded by a shared-weight Swin backbone to obtain frame-level embeddings, which are then aggregated by the Temporal Transformer to form a clip-level representation used for binary violence classification.
 
-The reason this structure works well is that it keeps spatial encoding and temporal reasoning separate. Instead of jumbling everything together from the start, the model can learn each task more efficiently.
+A key advantage of this architecture is the explicit decoupling of spatial representation learning and temporal dependency modeling. This separation improves optimization stability and allows each module to specialize in its respective objective.
 
-There are two main advantages to this cascade approach. For one thing, Stage B only has to deal with a handful of ROIs rather than full frames, which keeps the computational load manageable and helps us maintain real-time performance. More importantly though, only firing up the heavy inference when we actually need it cuts down dramatically on false positives from background motion or benign activities. In long CCTV feeds, that stability matters almost as much as getting the detections right in the first place.
+The cascade design provides two practical benefits. First, because Stage~B evaluates only filtered ROIs instead of full-resolution frames, computational overhead is significantly reduced, facilitating real-time deployment. Second, activating deep inference only for high-risk candidates suppresses false positives caused by background motion and benign high-dynamics activities, thereby improving long-horizon operational stability in CCTV monitoring.
 
 \section{EXPERIMENTAL RESULTS}
 
 \subsection{Dataset Description}
 
-We tested our algorithm on large datasets covering a wide range of scenarios - large-scale fights, fights in crowds, physical interactions close to the camera, interactions far from the camera, and non-violent moving objects. We also compared our approach against previous methods on the collected datasets. 
+The proposed framework was evaluated on a large and diverse dataset covering multiple scenarios, including large-scale fights, crowded confrontations, near-camera interactions, far-field interactions, and non-violent motion patterns. We further compared our method with prior approaches on the same collected data. 
 
 In total, the system was evaluated on 1629 videos (815 violent and 814 non-violent) from six different data sources, ensuring high statistical representativeness and strong generalization across multiple application domains.
 The dataset was split using an 80/20 stratified protocol at the video level. 
@@ -409,7 +409,7 @@ A total of 1309 clips were used for training and 320 clips (160 violent and 160 
 \caption{Experimental Dataset Distribution}
 \end{table}
 
-Table I provides a detailed breakdown of a portion of the full dataset. Figure~\ref{fig:violent_samples} and Figure~\ref{fig:violent_night} shows actual violent frames from videos in the test set under different conditions, demonstrating how diverse the data really is. Violent behaviors appear in many different forms and environmental conditions. In the first row, large-scale fights take up most of the frame. However, in the third row, the violent interactions are tiny and only occupy a few pixels.
+Table~I provides a detailed breakdown of the dataset composition. Figures~\ref{fig:violent_samples} and~\ref{fig:violent_night} present representative violent frames from the test set under different environmental conditions, illustrating the diversity of the evaluation data. Violent behaviors appear in multiple forms and scene contexts. In the first row, large-scale fights occupy most of the frame, whereas in the third row, violent interactions are small and occupy only a limited number of pixels.
 
 \begin{figure*}[!t]
 \centering
@@ -439,6 +439,8 @@ These frame-level descriptors are then fed into a Temporal Transformer encoder c
 A learnable positional encoding is applied to preserve temporal order. 
 The final clip-level representation is obtained via temporal mean pooling, followed by a linear classification layer for binary prediction.
 The complete model contains 41,709,691 trainable parameters.
+
+Model optimization was performed with AdamW using an initial learning rate of $1\times10^{-4}$ and a weight decay coefficient of $0.01$. The learning rate followed a cosine annealing schedule (\texttt{CosineAnnealingLR}) with a minimum value of $1\times10^{-6}$ over 50 training epochs. Training was conducted with a batch size of 8 and \texttt{BCEWithLogitsLoss} as the binary classification objective. In addition, automatic mixed precision (AMP) was employed to improve computational efficiency and stabilize GPU memory usage during training.
 
 \subsection{Quantitative Results}
 
