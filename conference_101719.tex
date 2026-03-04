@@ -409,6 +409,17 @@ A total of 1309 clips were used for training and 320 clips (160 violent and 160 
 \caption{Experimental Dataset Distribution}
 \end{table}
 
+To complement the source-level distribution in Table~I, we further summarize a representative subset of video-level metadata in Fig.~\ref{fig:test_dataset_description}. The samples cover multiple surveillance conditions, including daytime interactions, night interactions, close-range encounters, far-range encounters, crowded scenes, and indoor interactions. The subset contains heterogeneous spatial resolutions (from 640$\times$480 to 1280$\times$720) and clip durations concentrated around 2:37--4:00, which reflects realistic variation in practical CCTV data collection. This diversity is important for evaluating the robustness of both motion-based screening and Transformer-based spatiotemporal recognition under non-uniform recording settings.
+
+\begin{figure*}[!htbp]
+\centering
+\includegraphics[width=\linewidth]{image/test_dataset_description.png}
+\caption{Test Dataset Description}
+\label{fig:test_dataset_description}
+\end{figure*}
+
+
+
 Table~I provides a detailed breakdown of the dataset composition. Figures~\ref{fig:violent_samples} and~\ref{fig:violent_night} present representative violent frames from the test set under different environmental conditions, illustrating the diversity of the evaluation data. Violent behaviors appear in multiple forms and scene contexts. In the first row, large-scale fights occupy most of the frame, whereas in the third row, violent interactions are small and occupy only a limited number of pixels.
 
 \begin{figure*}[!t]
