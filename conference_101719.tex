@@ -384,9 +384,9 @@ The cascade design provides two practical benefits. First, because Stage~B evalu
 
 The proposed framework was evaluated on a large and diverse dataset covering multiple scenarios, including large-scale fights, crowded confrontations, near-camera interactions, far-field interactions, and non-violent motion patterns. We further compared our method with prior approaches on the same collected data. 
 
-In total, the system was evaluated on 1629 videos (815 violent and 814 non-violent) from six different data sources, ensuring high statistical representativeness and strong generalization across multiple application domains.
+In total, the system was evaluated on 5746 videos (2873 violent and 2873 non-violent) from six different data sources, ensuring high statistical representativeness and strong generalization across multiple application domains. 
 The dataset was split using an 80/20 stratified protocol at the video level. 
-A total of 1309 clips were used for training and 320 clips (160 violent and 160 non-violent) were reserved for validation. 
+A total of 4597 clips were used for training and 1149 clips (574 violent and 575 non-violent) were reserved for validation.
 
 \begin{table}[!htbp]
 \centering
@@ -396,14 +396,14 @@ A total of 1309 clips were used for training and 320 clips (160 violent and 160 
 \hline
 \textbf{No.} & \textbf{Dataset} & \textbf{Test} & \textbf{Viol.} & \textbf{Non-Viol.} \\
 \hline
-1 & RWF-2000 & 400 & 200 & 200 \\
-2 & Real Life Violence & 600 & 300 & 300 \\
-3 & Hockey Fight & 300 & 150 & 150 \\
-4 & Auto Violence Detection & 105 & 53 & 52 \\
-5 & Movies Violence & 74 & 37 & 37 \\
+1 & RWF-2000 & 2000 & 1000 & 1000 \\
+2 & Real Life Violence Situations & 2000 & 1000 & 1000 \\
+3 & Hockey Fight & 1000 & 500 & 500 \\
+4 & Auto Violence Detection & 350 & 175 & 175 \\
+5 & Movies Violence / Non-Violence & 246 & 123 & 123 \\
 6 & PTIT Dataset & 150 & 75 & 75 \\
 \hline
-\textbf{Total} &  & \textbf{1629} & \textbf{815} & \textbf{814} \\
+\textbf{Total} &  & \textbf{5746} & \textbf{2873} & \textbf{2873} \\
 \hline
 \end{tabular}
 \caption{Experimental Dataset Distribution}
