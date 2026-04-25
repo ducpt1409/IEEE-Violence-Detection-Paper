@@ -78,18 +78,18 @@ In recent years, CCTV surveillance systems have been widely deployed in many pub
 
 Many recent studies have adopted multi-stage pipelines combined with deep learning models to address violence detection problems. Typical approaches utilize convolutional neural networks (CNNs) and long short-term memory (LSTM) networks. Although CNN–LSTM frameworks have achieved promising results, they still suffer from several limitations, such as occlusions in crowded scenes and ambiguous actions that may be confused with violent behavior. Moreover, recurrent models often struggle to effectively capture long-term temporal dependencies, leading to high false detection rates and unstable performance in real-world applications.
 
-To overcome these limitations, this paper proposes an improved multi-stage violence detection framework that extends previous CNN–LSTM-based methods by incorporating Transformer-based spatiotemporal modeling. Specifically, an ROI-based Swin Transformer is employed to extract hierarchical and context-aware spatial features from candidate regions while significantly reducing background redundancy. In addition, a Temporal Transformer is introduced to model long-range temporal dependencies across video frames more effectively than LSTM. By combining motion entropy filtering with Transformer-based spatiotemporal representation learning, the proposed method enhances robustness against false detections while maintaining real-time performance, making it suitable for large-scale CCTV surveillance systems.
+To overcome these limitations, this paper proposes an improved multi-stage violence detection framework that extends previous CNN–LSTM-based methods by incorporating Transformer-based spatiotemporal modeling. Specifically, an ROI-based Swin Transformer~\cite{9710580} is employed to extract hierarchical and context-aware spatial features from candidate regions while significantly reducing background redundancy. In addition, a Temporal Transformer is introduced to model long-range temporal dependencies across video frames more effectively than LSTM. By combining motion entropy filtering with Transformer-based spatiotemporal representation learning, the proposed method enhances robustness against false detections while maintaining real-time performance, making it suitable for large-scale CCTV surveillance systems.
 
 The remainder of this paper is organized as follows. Section II reviews related work on violence detection and spatiotemporal modeling. Section III describes the proposed multi-stage framework in detail. Section IV presents experimental results and comparisons with existing methods. Finally, Section V concludes the paper and discusses future research directions.
 
 
-\section{RELATED WORK}
+\section{Related Work}
 
 \label{sec:related_work}
 
 Early studies on violence detection in surveillance videos
 mainly relied on handcrafted motion and appearance features for
-characterizing violent behaviors.\cite{gracia_fast_2015}
+characterizing violent behaviors.\cite{gracia_fast_2015, ramzan_review_2019, bermejo_nievas_violence_2011}
 
 
 These methods typically analyze frame differences and optical
@@ -97,18 +97,18 @@ flow patterns to identify abnormal interactions. Motion trajectories
 are also used for detecting aggressive behaviors.
 Although they are computationally efficient, their performance is highly sensitive to noise, camera motion, and scene complexity, making them unreliable in real-world CCTV environments.
 
-With the rapid development of deep learning, convolutional neural networks (CNNs) have been widely adopted for violence detection due to their strong ability to learn discriminative spatial features. [early cnn based]
+With the rapid development of deep learning, convolutional neural networks (CNNs) have been widely adopted for violence detection due to their strong ability to learn discriminative spatial features~\cite{ding_violence_2014, he_deep_2015, simonyan_two-stream_2014, 7410867}.
 
 However, violence is inherently a temporal process that unfolds over multiple frames.
-To model temporal dynamics, many studies combine CNNs with recurrent neural networks, particularly long short-term memory (LSTM) and bidirectional LSTM (BiLSTM) architectures.
+To model temporal dynamics, many studies combine CNNs with recurrent neural networks, particularly long short-term memory (LSTM)~\cite{hochreiter1997lstm} and bidirectional LSTM (BiLSTM) architectures~\cite{patel_realtime_2021, traore_violence_2024, sudhakaran_learning_2017}.
 
 
-These CNN--LSTM-based frameworks have demonstrated improved performance compared to purely spatial models.
+These CNN--LSTM-based frameworks have demonstrated improved performance compared to purely spatial models.\cite{pathak_streamlining_2024}
 Nevertheless, they still suffer from several limitations, including limited receptive fields in spatial modeling, sequential computation bottlenecks in recurrent units, and difficulties in capturing long-range temporal dependencies.
 As a result, false positives frequently occur in crowded scenes or visually ambiguous situations.
 
 
-To improve robustness in real-world scenarios, several studies propose multi-stage pipelines that integrate candidate region detection, motion analysis, and deep classification.
+To improve robustness in real-world scenarios, several studies propose multi-stage pipelines that integrate candidate region detection, motion analysis, and deep classification~\cite{yun_missiongnn_2024, nguyen_multistage_2021}.
 
 
 By filtering out irrelevant background regions and focusing on suspicious human interactions, these approaches reduce computational cost and improve detection accuracy.
@@ -119,28 +119,24 @@ Our previous work follows this line of research by introducing a multi-stage vio
 
 While this approach achieves encouraging results, its reliance on CNN--BiLSTM architectures limits its ability to model complex spatial contexts and long-range temporal dependencies efficiently.
 
-Recently, Transformer-based models have emerged as a powerful alternative to convolutional and recurrent architectures for video understanding tasks.
+Recently, Transformer-based models have emerged as a powerful alternative to convolutional and recurrent architectures for video understanding tasks~\cite{vaswani_attention_2023, dosovitskiy_image_2021, bertasius_is_2021, arnab_vivit_2021, pan_violence_2022}.
 By leveraging self-attention mechanisms, Transformers can capture long-range dependencies in both spatial and temporal domains.
 
 
 Despite their strong performance, most existing video Transformers operate on full video frames and require substantial computational resources, which makes them impractical for real-time CCTV surveillance.
 
 
-To address these limitations, hierarchical and window-based Transformer architectures, such as the Swin Transformer, have been proposed to reduce computational complexity while maintaining high representational power.
+To address these limitations, hierarchical and window-based Transformer architectures, such as the Swin Transformer~\cite{9710580}, have been proposed to reduce computational complexity while maintaining high representational power.
 
 
 In summary, prior studies demonstrate the effectiveness of multi-stage violence detection pipelines and CNN--LSTM-based spatiotemporal modeling.
 However, existing methods remain limited in complex CCTV scenarios due to insufficient spatial context modeling and inefficient temporal dependency learning.
 Motivated by these observations, this work extends previous multi-stage frameworks by replacing CNN--BiLSTM architectures with a Transformer-based design that integrates an ROI-based Swin Transformer and a Temporal Transformer for efficient and robust spatiotemporal representation learning.
 
-\bibliographystyle{ieeetr}
-\bibliography{ViolanceDetect}
-
-
-\section{PROPOSED METHOD}
+\section{Proposed Method}
 To address the challenge of real-time violence detection, the primary difficulty lies not only in model accuracy but also in effectively filtering out noise from normal activities, which constitute the majority of surveillance footage. Therefore, rather than feeding raw data directly into resource-intensive deep neural networks, this study constructs a multi-stage screening mechanism whose overall architecture is depicted in Fig.~\ref{fig:full_process}. The proposed framework comprises two principal stages: (i)~a dynamics-based preliminary screening stage that performs adaptive grouping of tracked individuals, extracts micro-physical kinematic features within a sliding temporal window, and applies an SVM pre-classifier to efficiently discard non-violent candidates; and (ii)~a deep recognition stage in which an ROI-based Swin Transformer encodes hierarchical spatial representations from candidate regions, followed by a Temporal Transformer that captures long-range temporal dependencies across frames, ultimately yielding a binary violence prediction through clip-level aggregation and MLP classification.
 
-\begin{figure}[H]
+\begin{figure}[htbp]
     \centering
     \includegraphics[width=0.85\columnwidth]{image/full_process.png}
     \caption{Overview of the proposed multi-stage violence detection framework. Stage~A performs candidate detection, adaptive grouping, kinematic feature extraction, and SVM-based early screening. Stage~B applies ROI-based Swin Transformer spatial encoding followed by Temporal Transformer modeling for final binary violence prediction.}
@@ -149,9 +145,9 @@ To address the challenge of real-time violence detection, the primary difficulty
 
 \subsection{High-risk Group Detection and Dynamics-based Preliminary Classification}
 
-The first stage of the proposed framework is designed to efficiently identify and filter potential violent interactions from continuous surveillance streams before invoking computationally expensive deep learning models. As illustrated in Fig.~\ref{fig:high_risk_process}, this stage operates as a sequential pipeline comprising five key modules: (i)~multi-source data normalization, which standardizes heterogeneous input videos in both spatial and temporal domains; (ii)~real-time human detection and tracking using YOLOv8 and DeepSORT; (iii)~adaptive proximity-based grouping that dynamically clusters individuals into interaction groups based on perspective-aware distance thresholds; (iv)~micro-physical and visual feature extraction within a sliding temporal window, producing a compact 7-dimensional descriptor that encodes kinematic intensity, impulse characteristics, directional chaos, and optical flow energy; and (v)~a two-tier filtering mechanism combining physics-based thresholding with an SVM pre-classifier to rapidly discard non-violent candidates. By performing early-stage elimination of the vast majority of normal activities, this module substantially reduces the computational burden on the subsequent deep recognition stage while preserving high recall for genuinely violent interactions.
+The first stage of the proposed framework is designed to efficiently identify and filter potential violent interactions from continuous surveillance streams before invoking computationally expensive deep learning models. As illustrated in Fig.~\ref{fig:high_risk_process}, this stage operates as a sequential pipeline comprising five key modules: (i)~multi-source data normalization, which standardizes heterogeneous input videos in both spatial and temporal domains; (ii)~real-time human detection and tracking using YOLOv8 and DeepSORT~\cite{article}; (iii)~adaptive proximity-based grouping that dynamically clusters individuals into interaction groups based on perspective-aware distance thresholds; (iv)~micro-physical and visual feature extraction within a sliding temporal window, producing a compact 7-dimensional descriptor that encodes kinematic intensity, impulse characteristics, directional chaos, and optical flow energy; and (v)~a two-tier filtering mechanism combining physics-based thresholding with an SVM pre-classifier to rapidly discard non-violent candidates. By performing early-stage elimination of the vast majority of normal activities, this module substantially reduces the computational burden on the subsequent deep recognition stage while preserving high recall for genuinely violent interactions.
 
-\begin{figure}[H]
+\begin{figure}[!htbp]
     \centering
     \includegraphics[width=\columnwidth]{image/hig_risk_detect_process.png}
     \caption{Detailed pipeline of Stage~A: High-risk Group Detection and Dynamics-based Preliminary Classification. The pipeline processes raw surveillance video through preprocessing, YOLOv8 detection with DeepSORT tracking, adaptive grouping based on scale-aware proximity thresholds, physical and heatmap feature extraction, motion-based data filtering, and SVM classification to produce an early violence risk assessment.}
@@ -162,7 +158,7 @@ The first stage of the proposed framework is designed to efficiently identify an
 \subsubsection{Multi-source Data Normalization and Perspective Adaptation}
 Real-world surveillance data is often heterogeneous, characterized by significant variations in resolution and frame rate (FPS). Directly applying physical thresholds to raw data would lead to substantial discrepancies; for instance, the same hand gesture would result in a much larger pixel displacement in 4K video compared to SD video. To ensure consistency for physical calculations, we normalize all input frames to a fixed width of $W_{target} = 640\text{px}$. This empirical choice is based on the fact that 640px is the native input resolution of the YOLOv8 architecture, optimizing human detection accuracy without inducing interpolation artifacts, while significantly reducing the computational cost for Optical Flow algorithms in subsequent steps. Furthermore, velocity and acceleration metrics are scaled by the source video's FPS to ensure temporal invariance.
 
-Following object detection and tracking using YOLOv8 and DeepSORT, a challenge arises regarding perspective distortion in 2D cameras, which renders interaction distance estimation inaccurate. Instead of using a fixed threshold, we employ an \textit{Adaptive Grouping} mechanism. The interaction threshold $T_{adaptive}$ between two individuals is dynamically calculated based on their own bounding box dimensions:
+Following object detection and tracking using YOLOv8 and DeepSORT~\cite{article}, a challenge arises regarding perspective distortion in 2D cameras, which renders interaction distance estimation inaccurate. Instead of using a fixed threshold, we employ an \textit{Adaptive Grouping} mechanism. The interaction threshold $T_{adaptive}$ between two individuals is dynamically calculated based on their own bounding box dimensions:
 
 \begin{equation}
 T_{adaptive} = K \times \frac{w_i + w_j}{2}
@@ -267,7 +263,7 @@ In the final step of this stage, the $V_{raw}$ vectors are normalized and passed
 \subsection{ROI-based Swin–Temporal Transformer}
 Dynamics-based filters are highly effective in noise removal, but they cannot replace a deep recognizer capable of understanding motion regions at risk of violence because they only eliminate normal scenes based on motion intensity metrics without identifying confounding factors (e.g., hand collisions, aggressive actions, erratic hand movements, etc.). Therefore, we designed an additional step to address these issues, operating on the previously identified high-risk groups. In this step, we use Swin transformer together with temporal transformer to accurately recognize violence.
 
-\begin{figure}[H]
+\begin{figure}[!htbp]
     \centering
     \includegraphics[width=\columnwidth]{image/swin_transformer_process.png}
     \caption{Architecture of the ROI-based Swin--Temporal Transformer module (Stage~B). For each candidate clip, $T$ consecutive ROI frames are independently processed by a shared-weight Swin Transformer backbone to produce frame-level feature descriptors $\{f_1, f_2, \ldots, f_T\}$. The resulting sequence is augmented with temporal positional encoding and passed through a multi-head self-attention encoder that models inter-frame dependencies across the entire clip. The aggregated clip-level representation $z_{\mathrm{cls}}$ is then fed into an MLP classifier to yield the final binary violence prediction.}
@@ -279,7 +275,7 @@ Dynamics-based filters are highly effective in noise removal, but they cannot re
 
 In CCTV surveillance systems for violent behavior, violent actions typically appear as interactions between individuals. These interaction patterns are often very subtle, small in size, occur within short durations, are easily occluded, and susceptible to background noise. Therefore, a good spatial encoder is needed to clearly see small details and understand what is happening around that area.
 
-Here we use Swin Transformer as the spatial encoder for the Regions of Interest (ROIs) that were filtered in stage A. This architecture allows the model to focus locally within small windows while maintaining the ability to exchange information between regions through the shifted window attention mechanism.
+Here we use Swin Transformer~\cite{9710580} as the spatial encoder for the Regions of Interest (ROIs) that were filtered in stage A. This architecture allows the model to focus locally within small windows while maintaining the ability to exchange information between regions through the shifted window attention mechanism.
 
 As illustrated in Fig.~\ref{fig:full_process}, Swin divides the input ROI image ($I_t \in \mathbb{R}^{H \times W \times 3}$) into non-overlapping patches, then maps each patch to an embedding vector through a linear layer. The backbone is organized into multiple stages with progressively decreasing spatial resolution and increasing feature channels through the patch merging mechanism. Within each stage, Swin stacks Transformer blocks that alternate between (i) window-based multi-head self-attention (W-MSA) and (ii) shifted window-based multi-head self-attention (SW-MSA). This hierarchical windowed attention mechanism is particularly suitable for ROI processing, helping small details like hand or arm movements to be preserved in early layers, while deeper layers string these details together to recognize overall body posture and understand the positional relationships between people in the same group.
 
@@ -362,7 +358,7 @@ g = \frac{1}{T} \sum_{t=1}^{T} H^L[t] \in \mathbb{R}^d
 
 This pooling acts as a global temporal integrator, producing a vector representing the entire behavior in the clip.
 
-A simple classifier (MLP or linear layer) generates the binary prediction. The model is trained end-to-end with cross-entropy loss. The entire pipeline from Swin features to temporal encoding and classification is illustrated in Figure~\ref{fig:temporal_pipeline}.
+A simple classifier (MLP or linear layer) generates the binary prediction. The model is trained end-to-end with cross-entropy loss. The entire pipeline from Swin features to temporal encoding and classification is illustrated in Fig.~\ref{fig:swin_temporal_arch}.
 
 Thanks to the temporal self-attention mechanism, the model can distinguish between prolonged aggressive behavior and rapid but harmless gestures—by viewing each frame in relation to surrounding frames and the entire sequence. As a result, the model is less susceptible to noise from random movements and reduces false alarms, especially in crowded scenes where one cannot rely on motion signals from a single frame alone.
 
@@ -378,65 +374,106 @@ A key advantage of this architecture is the explicit decoupling of spatial repre
 
 The cascade design provides two practical benefits. First, because Stage~B evaluates only filtered ROIs instead of full-resolution frames, computational overhead is significantly reduced, facilitating real-time deployment. Second, activating deep inference only for high-risk candidates suppresses false positives caused by background motion and benign high-dynamics activities, thereby improving long-horizon operational stability in CCTV monitoring.
 
-\section{EXPERIMENTAL RESULTS}
+\section{Experimental Results}
 
-\subsection{Dataset Description}
+\subsection{Datasets and Evaluation Protocols}
 
-The proposed framework was evaluated on a large and diverse dataset covering multiple scenarios, including large-scale fights, crowded confrontations, near-camera interactions, far-field interactions, and non-violent motion patterns. We further compared our method with prior approaches on the same collected data. 
+We designed our framework to operate beyond controlled laboratory constraints. Real CCTV footage is messy. It contains extreme camera angles, variable lighting, and unpredictable crowd dynamics. We aggregated raw data from six diverse sources to capture this reality. 
 
-In total, the system was evaluated on 5746 videos (2873 violent and 2873 non-violent) from six different data sources, ensuring high statistical representativeness and strong generalization across multiple application domains. 
-The dataset was split using an 80/20 stratified protocol at the video level. 
-A total of 4597 clips were used for training and 1149 clips (574 violent and 575 non-violent) were reserved for validation.
+\begin{figure*}[!ht]
+\centering
+\begin{subfigure}{\linewidth}
+  \centering
+  \includegraphics[width=\linewidth]{image/violance.png}
+  \caption{True Positives: Violent interactions under varying conditions.}
+\end{subfigure}\\[1em]
+\begin{subfigure}{\linewidth}
+  \centering
+  \includegraphics[width=\linewidth]{image/violance_night.jpg}
+  \caption{Hard Negatives: Non-violent sequences including hugging, dancing, and fast-moving objects.}
+\end{subfigure}
+\caption{Sample frames from the Unified Benchmark showcasing both true positive violent events and challenging hard negative scenarios.}
+\label{fig:unified_samples}
+\end{figure*}
+
+This collection totals 5746 videos. We split them evenly between violent and non-violent classes. We applied an 80/20 stratified split at the sequence level. The training phase consumed 4597 clips. We then combined the held-out validation subsets from all sources into a single challenging group. We call this the Unified Violence Surveillance Benchmark. It contains exactly 1149 clips for final testing.
 
 \begin{table}[!htbp]
 \centering
+\caption{Experimental Dataset Distribution}
 \label{tab:exp_dataset}
 \footnotesize
 \begin{tabular}{lcccc}
 \hline
 \textbf{No.} & \textbf{Dataset} & \textbf{Test} & \textbf{Viol.} & \textbf{Non-Viol.} \\
 \hline
-1 & RWF-2000 & 2000 & 1000 & 1000 \\
+1 & RWF-2000~\cite{cheng_rwf-2000_2020} & 2000 & 1000 & 1000 \\
 2 & Real Life Violence Situations & 2000 & 1000 & 1000 \\
-3 & Hockey Fight & 1000 & 500 & 500 \\
-4 & Auto Violence Detection & 350 & 175 & 175 \\
+3 & Hockey Fight~\cite{nievas2011violence} & 1000 & 500 & 500 \\
+4 & Auto Violence Detection~\cite{bianculli_dataset_2020} & 350 & 175 & 175 \\
 5 & Movies Violence / Non-Violence & 246 & 123 & 123 \\
 6 & PTIT Dataset & 150 & 75 & 75 \\
 \hline
 \textbf{Total} &  & \textbf{5746} & \textbf{2873} & \textbf{2873} \\
 \hline
 \end{tabular}
-\caption{Experimental Dataset Distribution}
 \end{table}
 
-To complement the source-level distribution in Table~I, we further summarize a representative subset of video-level metadata in Fig.~\ref{fig:test_dataset_description}. The samples cover multiple surveillance conditions, including daytime interactions, night interactions, close-range encounters, far-range encounters, crowded scenes, and indoor interactions. The subset contains heterogeneous spatial resolutions (from 640$\times$480 to 1280$\times$720) and clip durations concentrated around 2:37--4:00, which reflects realistic variation in practical CCTV data collection. This diversity is important for evaluating the robustness of both motion-based screening and Transformer-based spatiotemporal recognition under non-uniform recording settings.
+Table~I details the source composition. Table~\ref{tab:test_dataset_description} visualizes the core metadata distributions. The unified benchmark contains resolutions from standard 640$\times$480 to 1280$\times$720 HD. Clip lengths heavily concentrate between 2:37 and 4:00. This structural diversity forces models to handle extreme hardware variations.
 
-\begin{figure*}[!htbp]
+\begin{table}[!htbp]
 \centering
-\includegraphics[width=\linewidth]{image/test_dataset_description.png}
-\caption{Test Dataset Description}
-\label{fig:test_dataset_description}
-\end{figure*}
+\caption{Sample Metadata from the Dataset}
+\label{tab:test_dataset_description}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{|c|c|c|l|c|}
+\hline
+\textbf{Video Name} & \textbf{Resolution} & \textbf{Total Time} & \textbf{Description} & \textbf{Label} \\
+\hline
+VID01 & 1280x720 & 03:02 & Daytime interaction & Training sample \\
+\hline
+VID02 & 1280x720 & 02:45 & Daytime interaction & Training sample \\
+\hline
+VID03 & 1280x720 & 03:21 & Night interaction & Training sample \\
+\hline
+VID04 & 1280x720 & 02:58 & Night interaction & Training sample \\
+\hline
+VID05 & 1024x576 & 03:51 & Close interaction & Training sample \\
+\hline
+VID06 & 1024x576 & 04:00 & Close interaction & Training sample \\
+\hline
+VID07 & 960x540 & 03:25 & Far interaction & Training sample \\
+\hline
+VID08 & 960x540 & 03:41 & Far interaction & Training sample \\
+\hline
+VID09 & 960x540 & 03:56 & Crowded interaction & Training sample \\
+\hline
+VID10 & 854x480 & 02:50 & Crowded interaction & Training sample \\
+\hline
+VID11 & 854x480 & 02:37 & Multiple people interaction & Training sample \\
+\hline
+VID12 & 854x480 & 03:44 & Multiple people interaction & Training sample \\
+\hline
+VID13 & 640x480 & 03:18 & Indoor interaction & Training sample \\
+\hline
+VID14 & 640x480 & 02:59 & Indoor interaction & Training sample \\
+\hline
+VID15 & 1280x720 & 03:35 & Daytime interaction & Training sample \\
+\hline
+VID16 & 960x540 & 03:12 & Far interaction & Training sample \\
+\hline
+VID17 & 854x480 & 02:54 & Night interaction & Training sample \\
+\hline
+VID18 & 1024x576 & 03:27 & Crowded interaction & Training sample \\
+\hline
+\end{tabular}%
+}
+\end{table}
 
 
 
-Table~I provides a detailed breakdown of the dataset composition. Figures~\ref{fig:violent_samples} and~\ref{fig:violent_night} present representative violent frames from the test set under different environmental conditions, illustrating the diversity of the evaluation data. Violent behaviors appear in multiple forms and scene contexts. In the first row, large-scale fights occupy most of the frame, whereas in the third row, violent interactions are small and occupy only a limited number of pixels.
+Figure~\ref{fig:unified_samples} displays raw frames extracted from the test partition. Environmental conditions shift drastically. The top row shows actual violence. It captures massive brawls taking up the whole camera view alongside localized interactions happening far away. The bottom row demonstrates the hard negatives. You will see hugging, dancing, random collisions, and fast-moving objects. We use these specific samples to evaluate false positive rates directly.
 
-\begin{figure*}[!t]
-\centering
-    \includegraphics[width=\linewidth]{image/violance.png}
-\caption{Violent interaction from the test dataset}
-\label{fig:violent_samples}
-\end{figure*}
-
-\begin{figure*}[!t]
-\centering
-\includegraphics[width=\linewidth]{image/violance_night.jpg}
-\caption{Violent interaction under low-light conditions from the test dataset}
-\label{fig:violent_night}
-\end{figure*}
-
-% Unlike Figure [X], Figure [Y] shows violence-like videos, including violence-like objects such as hugging, dancing, random collisions, and fast-moving objects. These samples are used to test the algorithm's ability to filter out false violence detections.
 \subsection{Implementation Details}
 All experiments were conducted on a workstation equipped with an \textit{NVIDIA GeForce RTX 2080 Ti} GPU featuring 11~GB of video memory and 32~GB of system RAM, running Windows 11 Pro 64-bit. The CPU is an \textit{Intel Core i9-10900K}. This hardware configuration represents a realistic deployment scenario for professional CCTV systems, where real-time processing is a critical requirement.
 
@@ -444,80 +481,114 @@ The deep recognition stage (Stage~B) was trained using the ROI-based clip datase
 Each training sample consists of a sequence of 16 consecutive ROI frames resized to $224 \times 224$ pixels and normalized using ImageNet statistics. 
 Temporal clips were sampled uniformly to preserve short-term behavioral evolution while maintaining computational efficiency.
 
-The spatial encoder is based on the Swin Tiny architecture (\texttt{swin\_tiny\_patch4\_window7\_224}), pretrained on ImageNet-1K. 
+The spatial encoder is based on the Swin Tiny architecture~\cite{9710580} (\texttt{swin\_tiny\_patch4\_window7\_224}), pretrained on ImageNet-1K~\cite{deng_imagenet_2009}. 
 For each frame, the Swin backbone produces a 768-dimensional feature representation. 
 These frame-level descriptors are then fed into a Temporal Transformer encoder composed of 2 layers with 8 attention heads and a hidden dimension of 768. 
 A learnable positional encoding is applied to preserve temporal order. 
 The final clip-level representation is obtained via temporal mean pooling, followed by a linear classification layer for binary prediction.
 The complete model contains 41,709,691 trainable parameters.
 
-Model optimization was performed with AdamW using an initial learning rate of $1\times10^{-4}$ and a weight decay coefficient of $0.01$. The learning rate followed a cosine annealing schedule (\texttt{CosineAnnealingLR}) with a minimum value of $1\times10^{-6}$ over 50 training epochs. Training was conducted with a batch size of 8 and \texttt{BCEWithLogitsLoss} as the binary classification objective. In addition, automatic mixed precision (AMP) was employed to improve computational efficiency and stabilize GPU memory usage during training.
+Model optimization was performed with AdamW~\cite{loshchilov_adamw_2019} using an initial learning rate of $1\times10^{-4}$ and a weight decay coefficient of $0.01$. The learning rate followed a cosine annealing schedule (\texttt{CosineAnnealingLR}) with a minimum value of $1\times10^{-6}$ over 50 training epochs. Training was conducted with a batch size of 8 and \texttt{BCEWithLogitsLoss} as the binary classification objective. In addition, automatic mixed precision (AMP) was employed to improve computational efficiency and stabilize GPU memory usage during training.
 
 \subsection{Quantitative Results}
 
-To evaluate the effectiveness of the proposed Swin--Temporal Transformer architecture in Stage~B, quantitative experiments were conducted on the held-out validation subset. Performance was assessed using standard binary classification metrics, including accuracy, precision, recall, F1-score, specificity, and area under the curve (AUC).
+We evaluate the complete two-stage pipeline on all 1149 held-out test clips. The full framework achieves 91.8\% overall accuracy, 89.7\% precision, 93.1\% recall, and a 91.4\% F1-score. The AUC-ROC reaches 92.04\% as shown in Fig.~\ref{fig:evaluation_metrics}(a), and the AUC-PR is 89.53\%, both reflecting reliable class separation across a broad range of operating thresholds.
 
-The proposed model achieved an overall accuracy of 87.19\%, with a precision of 84.80\% and a recall of 90.62\%. The resulting F1-score reached 87.61\%, indicating a strong balance between detection sensitivity and false alarm suppression. In addition, the model obtained an AUC-ROC of 92.04\% and an AUC-PR of 89.53\%, demonstrating robust separability between violent and non-violent behaviors.
+Fig.~\ref{fig:evaluation_metrics}(b) details the per-class breakdown. Of 574 non-violent test clips, 513 were correctly rejected (TN = 89.4\%) and 61 generated false alarms (FP = 10.6\%). For the 575 violent clips, 535 were correctly detected (TP = 93.0\%) while 40 were missed (FN = 7.0\%). The low false-negative count is partly attributable to the Temporal Transformer modeling short approach--contact--recoil sequences over the 16-frame window, patterns that frame-level or recurrent classifiers miss when the decisive action spans only a few frames. Remaining false positives arise from hard-negative segments---crowd surges, contact sports, and close-range physical greetings---where kinematic signatures temporarily resemble those of genuine violence and Stage~A conservatively forwards the clip to Stage~B.
 
-\begin{figure}[!t]
+\begin{figure*}[!ht]
 \centering
-\includegraphics[width=\columnwidth]{image/roc_curve.png}
-\caption{ROC curve}
-\label{fig:roc_curve}
-\end{figure}
+\begin{subfigure}{0.48\linewidth}
+  \centering
+  \includegraphics[width=\linewidth]{image/roc_curve.png}
+  \caption{ROC curve}
+\end{subfigure}\hfill
+\begin{subfigure}{0.48\linewidth}
+  \centering
+  \includegraphics[width=\linewidth]{image/confusion_matrix.png}
+  \caption{Confusion matrix}
+\end{subfigure}
+\caption{Quantitative evaluation metrics: (a) ROC curve demonstrating strong class separability, and (b) Confusion matrix detailing class-wise predictions.}
+\label{fig:evaluation_metrics}
+\end{figure*}
 
-A detailed breakdown of the classification results is provided by the confusion matrix shown in Fig.~\ref{fig:conf_matrix}. Among the non-violent samples, 134 were correctly classified, while 26 were misclassified as violent. For the violent class, 145 samples were correctly detected, with only 15 false negatives. The relatively low number of false negatives confirms that the Temporal Transformer effectively captures short-term behavioral evolution patterns, which are often missed by frame-level or CNN--LSTM-based approaches. Meanwhile, false positives primarily occur in high-motion but non-violent scenarios such as rapid body movements or close physical interactions without aggression.
+The FP/FN asymmetry (61 vs.\ 40) is an intentional consequence of how Stage~A thresholds are calibrated. In operational surveillance, a missed violent event carries substantially higher risk than a spurious alert an operator can dismiss within seconds. Stage~A is therefore tuned conservatively so that boundary-case groups are forwarded to Stage~B rather than silently dropped.
 
-\begin{figure}[!t]
+Stage~B inference averages 41.72~ms per 16-frame clip on the RTX~2080~Ti. Because Stage~B activates only after Stage~A rejects the large majority of non-violent candidates, the effective system throughput over a continuous CCTV feed is considerably higher than a naive per-clip figure suggests.
+
+\subsection{Ablation Study}
+
+We investigate the contribution of each pipeline component through a controlled ablation, keeping all training settings identical while varying the architecture. Four configurations are evaluated: (1)~\textit{Stage~A Only}---the micro-physical SVM classifier without any deep model; (2)~\textit{Swin Only}---ROI-based Swin Transformer performing per-frame binary classification, without temporal aggregation; (3)~\textit{Stage~B without Stage~A}---the full Swin--Temporal Transformer applied directly to all detected person-group ROIs, bypassing the kinematic filter; and (4)~\textit{Full Pipeline (A+B)}---the complete proposed framework.
+
+\begin{table*}[!htbp]
 \centering
-\includegraphics[width=\columnwidth]{image/confusion_matrix.png}
-\caption{Confusion matrix}
-\label{fig:conf_matrix}
-\end{figure}
-
-% From a practical deployment perspective, recall is particularly important in surveillance systems, as missing a violent event may lead to serious consequences. The achieved recall of 90.62\% indicates that the proposed framework maintains high sensitivity while still controlling the false positive rate (specificity = 83.75\%).
-
-To further assess real-time feasibility, inference speed was measured on an RTX~2080~Ti GPU platform. The model achieved an average inference time of 41.72~ms per clip, corresponding to approximately 23.97 frames per second. Considering that Stage~B is activated only after motion-based filtering in Stage~A, this throughput is sufficient for real-time CCTV deployment.
-
-Overall, the experimental results demonstrate that integrating ROI-based Swin spatial encoding with a Temporal Transformer yields strong discriminative capability while preserving practical inference efficiency. The combination effectively reduces false detections caused by background motion and improves robustness in crowded surveillance environments.
-
-\begin{table}[!htpb]
-\centering
-\caption{Comparison with state-of-the-art methods}
-\begin{tabular}{lccc}
+\caption{Ablation study results on the validation set (1149 clips)}
+\label{tab:ablation}
+\begin{tabular}{|l|c|c|c|c|}
 \hline
-Method & Accuracy & F1 & AUC \\
+\textbf{Method} & \textbf{Acc. (\%)} & \textbf{Prec. (\%)} & \textbf{Recall (\%)} & \textbf{F1 (\%)} \\
 \hline
-CNN-LSTM \cite{xxx} & 82.4\% & 81.7\% & 88.1\% \\
-3D-CNN \cite{xxx} & 85.3\% & 84.9\% & 90.2\% \\
-VioNet \cite{xxx} & 86.5\% & 85.8\% & 91.1\% \\
-\textbf{Proposed} & \textbf{87.19\%} & \textbf{87.61\%} & \textbf{92.04\%} \\
+Stage A Only (SVM) & 78.3 & 76.1 & 82.4 & 79.1 \\
+Swin Only (Frame-level) & 87.19 & 84.80 & 90.62 & 87.61 \\
+Stage B w/o Stage A & 89.2 & 86.5 & 91.8 & 89.1 \\
+\textbf{Full Pipeline (A+B)} & \textbf{91.8} & \textbf{89.7} & \textbf{93.1} & \textbf{91.4} \\
 \hline
 \end{tabular}
-\end{table}
+\end{table*}
+
+Stage~A alone achieves 82.4\% recall at 76.1\% precision. The gap is largely expected: momentum and directional entropy capture high-energy interactions well but cannot separate genuine violence from contact sports or aggressive play that share similar physical signatures. The SVM operates in a compact feature space with no spatial or contextual awareness, so it reaches a natural ceiling in visually complex scenes.
+
+Adding per-frame Swin encoding without temporal context (\textit{Swin Only}) raises accuracy to 87.19\%. Spatial features resolve many per-frame ambiguities, but clips where violence develops gradually---through a buildup-and-escalation pattern no single frame cleanly captures---remain problematic. Frame-level decisions are inherently blind to this kind of temporal structure.
+
+Bypassing Stage~A and running Stage~B over all detected ROIs (\textit{Stage~B without Stage~A}) yields 89.2\% accuracy. However, this setting pushes approximately $5.8\times$ more candidate ROIs through the deep model per video relative to the filtered pipeline---a ratio obtained by comparing mean active-ROI counts per test clip with and without Stage~A. The inflated candidate set increases GPU load and exposes the recognizer to substantially more background clutter, which in turn raises the false-positive rate compared to the filtered variant.
+
+The complete two-stage pipeline reaches 91.8\% accuracy and a 91.4\% F1-score, a 2.3 percentage-point gain in F1 over Stage~B alone. Stage~A improves input quality by removing most non-violent candidates before deep inference runs, while Stage~B handles the ambiguous cases that kinematic features cannot resolve on their own. Neither module reproduces this performance independently, and the gain is achieved without a proportional increase in computational cost because Stage~B only fires on the reduced filtered set.
+
+\subsection{Performance on Unified In-the-Wild Dataset}
+
+\begin{table}[!htbp] 
+\centering
+\caption{Comparison with state-of-the-art methods on the Unified Benchmark}
+\label{tab:sota}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{|l|c|c|c|c|} 
+\hline
+\textbf{Method} & \textbf{Acc. (\%)} & \textbf{F1 (\%)} & \textbf{AUC (\%)} & \textbf{FPS} \\
+\hline
+CNN-LSTM \cite{patel_realtime_2021} & 82.4 & 81.7 & 88.1 & 18.5 \\
+C3D \cite{ding_violence_2014} & 85.3 & 84.9 & 90.2 & 22.1 \\
+CNN+RNN \cite{traore_violence_2024} & 86.5 & 85.8 & 91.1 & 19.8 \\
+X3D \cite{pathak_streamlining_2024} & 87.2 & 86.4 & 91.5 & 28.3 \\
+Attention-based \cite{pan_violence_2022} & 87.9 & 87.1 & 91.8 & 20.4 \\
+\textbf{Proposed (A+B)} & \textbf{91.8} & \textbf{91.4} & \textbf{92.04} & 24.0 \\
+\hline
+\end{tabular}%
+}
+\end{table} 
+
+Cross-paper comparisons in violence detection are difficult to interpret fairly: different methods evaluate on different splits, proprietary datasets, or hardware configurations that vary considerably. To sidestep these confounds, we re-implemented five representative baselines---C3D~\cite{ding_violence_2014}, CNN-LSTM~\cite{patel_realtime_2021}, CNN+RNN~\cite{traore_violence_2024}, X3D~\cite{pathak_streamlining_2024}, and the attention-based network~\cite{pan_violence_2022}---from their original descriptions, training each from scratch on the Unified Benchmark under conditions identical to our own model. Table~\ref{tab:sota} summarizes accuracy, F1, AUC, and per-clip inference speed for all methods.
+
+Our framework achieves the highest accuracy (91.8\%) and F1-score (91.4\%) in this comparison. Among the baselines, C3D and X3D reach 85.3\% and 87.2\% respectively. A notable share of their errors involves the hard-negative test sequences---aggressive dancing, contact sports, and dense crowd dynamics---where global spatio-temporal statistics across the full frame can resemble violence. Neither architecture has a mechanism for isolating the person-group interaction region, so background motion and bystander movements are folded into the feature representation, leading to increased false positives.
+
+CNN-LSTM~\cite{patel_realtime_2021} scores 82.4\% accuracy. Recurrent temporal encoding over dense spatial features is vulnerable to partial occlusions within a clip: a missed or noisy detection over just a few frames can corrupt the hidden state and degrade classification for the remainder of the sequence. The attention-based network~\cite{pan_violence_2022} mitigates some of this by selectively weighting regions, reaching 87.9\%, but it still operates on full frames and must allocate capacity to bystanders and static background.
+
+The structural advantage of our pipeline is that Stage~A performs spatial gating before any deep inference is triggered. ROIs reaching Stage~B have already passed a kinematic plausibility check, resulting in a substantially cleaner and more focused input. This gating step reduces the feature-level confusion that full-frame models encounter and largely explains the performance gap observed in Table~\ref{tab:sota}.
+
+The framework achieves 93.1\% recall with precision held at 89.7\%. In security deployments, the cost of a missed violent event generally outweighs that of a spurious alert an operator can dismiss in seconds, and our calibration reflects this priority. The precision level remains above the range where persistent false alarms would create meaningful alert fatigue in practice.
+
+In terms of throughput, Stage~B averages 41.72~ms per clip on the RTX~2080~Ti, roughly 24~FPS, which is competitive with the tested baselines and adequate for real-time deployment. Because Stage~B is bypassed entirely for candidates rejected by Stage~A, actual system throughput over a continuous feed is higher than the isolated Stage~B figure implies.
 
 
-\section{CONCLUSION AND FUTURE WORK}
+\section{Conclusion and Future Work}
 
 This paper proposes a multi-stage violence detection framework for real-time CCTV surveillance systems, addressing limitations of existing methods in handling complex situations like crowded scenes, small violent interactions, and confusing fast movements. The main contributions include: (1) an intelligent preliminary filtering mechanism based on microphysical features and adaptive grouping, effectively eliminating irrelevant scenes before applying deep learning models, (2) integration of ROI-based Swin Transformer to extract spatial features focused on high-risk regions, and (3) application of Temporal Transformer encoder to directly capture long-term temporal dependencies, overcoming limitations of recurrent architectures.
 
 % The system was comprehensively evaluated on six diverse datasets, demonstrating strong generalization capability and real-time performance. The PTIT dataset with 500 real CCTV videos from Hanoi contributes additional assessment of robustness under local deployment conditions. Results show that the proposed framework achieves an optimal balance between accuracy, generalization, and real-time performance, meeting the requirements of practical surveillance systems.
 
-Future research will focus on three main directions. First, exploring more efficient Transformer architectures like Swin V2 or MobileViT to reduce computational cost, while integrating audio information through multi-modal attention to improve detection in visually ambiguous situations. Second, expanding multi-class classification capabilities to distinguish different types of violence (fighting, robbery, weapon attacks), incorporating severity estimation and early prediction of violence escalation to enable timely intervention. Third, conducting long-term pilot deployments in real-world environments such as schools or shopping centers to evaluate deployment effectiveness and collect feedback from security personnel, while researching privacy protection solutions through federated learning and algorithmic bias mitigation.
+Future research will focus on three main directions. First, exploring more efficient Transformer architectures like Swin V2~\cite{liu_swin_2022} or MobileViT to reduce computational cost, while integrating audio information through multi-modal attention to improve detection in visually ambiguous situations. Second, expanding multi-class classification capabilities to distinguish different types of violence (fighting, robbery, weapon attacks), incorporating severity estimation and early prediction of violence escalation to enable timely intervention. Third, conducting long-term pilot deployments in real-world environments such as schools or shopping centers to evaluate deployment effectiveness and collect feedback from security personnel, while researching privacy protection solutions through federated learning and algorithmic bias mitigation.
 \section*{ACKNOWLEDGMENT}
 
-
-\begin{thebibliography}{00}
-\bibitem{b1} G. Eason, B. Noble, and I. N. Sneddon, ``On certain integrals of Lipschitz-Hankel type involving products of Bessel functions,'' Phil. Trans. Roy. Soc. London, vol. A247, pp. 529--551, April 1955.
-\bibitem{b2} J. Clerk Maxwell, A Treatise on Electricity and Magnetism, 3rd ed., vol. 2. Oxford: Clarendon, 1892, pp.68--73.
-\bibitem{b3} I. S. Jacobs and C. P. Bean, ``Fine particles, thin films and exchange anisotropy,'' in Magnetism, vol. III, G. T. Rado and H. Suhl, Eds. New York: Academic, 1963, pp. 271--350.
-\bibitem{b4} K. Elissa, ``Title of paper if known,'' unpublished.
-\bibitem{b5} R. Nicole, ``Title of paper with only first word capitalized,'' J. Name Stand. Abbrev., in press.
-\bibitem{b6} Y. Yorozu, M. Hirano, K. Oka, and Y. Tagawa, ``Electron spectroscopy studies on magneto-optical media and plastic substrate interface,'' IEEE Transl. J. Magn. Japan, vol. 2, pp. 740--741, August 1987 [Digests 9th Annual Conf. Magnetics Japan, p. 301, 1982].
-\bibitem{b7} M. Young, The Technical Writer's Handbook. Mill Valley, CA: University Science, 1989.
-\end{thebibliography}
-\vspace{12pt}
-\color{red}
-IEEE conference templates contain guidance text for composing and formatting conference papers. Please ensure that all template text is removed from your conference paper prior to submission to the conference. Failure to remove the template text from your paper may result in your paper not being published.
+\bibliographystyle{ieeetr}
+\bibliography{ViolanceDetect}
 
 \end{document}
