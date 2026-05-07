@@ -87,52 +87,24 @@ The remainder of this paper is organized as follows. Section II reviews related 
 
 \label{sec:related_work}
 
-Early studies on violence detection in surveillance videos
-mainly relied on handcrafted motion and appearance features for
-characterizing violent behaviors~\cite{gracia_fast_2015, ramzan_review_2019, bermejo_nievas_violence_2011}
+Early studies on violence detection in surveillance videos primarily relied on hand-crafted motion and appearance descriptors to characterize aggressive behaviors~\cite{gracia_fast_2015, ramzan_review_2019, bermejo_nievas_violence_2011}. Representative approaches exploited frame-differencing, spatio-temporal interest points, and optical flow histograms to identify abnormal interactions, while motion trajectory analysis served as an auxiliary cue for flagging physically implausible movements. Although computationally lightweight, these methods are highly sensitive to noise, illumination variation, and camera motion, rendering them unreliable in uncontrolled CCTV environments.
 
+With the rise of deep learning, convolutional neural networks (CNNs) became the dominant feature extractor for appearance-based violence recognition owing to their superior capacity for discriminative spatial representation~\cite{ding_violence_2014, he_deep_2015, simonyan_two-stream_2014, 7410867}. In particular, two-stream architectures~\cite{simonyan_two-stream_2014} demonstrated that fusing appearance and dense optical flow streams substantially improves classification accuracy relative to spatial-only models. Nevertheless, CNNs process frames independently and thus fail to model the sequential nature of violent events, which typically span multiple frames.
 
-These methods typically analyze frame differences and optical
-flow patterns to identify abnormal interactions. Motion trajectories
-are also used for detecting aggressive behaviors.
-Although they are computationally efficient, their performance is highly sensitive to noise, camera motion, and scene complexity, making them unreliable in real-world CCTV environments.
+To capture temporal dynamics, a large body of subsequent work combined CNN spatial encoders with recurrent architectures, particularly long short-term memory (LSTM)~\cite{hochreiter1997lstm} networks and their bidirectional extensions~\cite{patel_realtime_2021, traore_violence_2024, sudhakaran_learning_2017}. These CNN--LSTM pipelines demonstrated measurable accuracy gains over purely spatial baselines~\cite{pathak_streamlining_2024}, yet they remain susceptible to occlusion artifacts, exhibit limited spatial receptive fields, and encounter computational bottlenecks arising from sequential hidden-state propagation. More critically, LSTM units tend to lose sensitivity to distant temporal dependencies when clip lengths exceed a few dozen frames, causing elevated false-positive rates in scenes with sustained crowd dynamics.
 
-With the rapid development of deep learning, convolutional neural networks (CNNs) have been widely adopted for violence detection due to their strong ability to learn discriminative spatial features~\cite{ding_violence_2014, he_deep_2015, simonyan_two-stream_2014, 7410867}.
+A parallel line of research has investigated skeleton- and pose-based representations as a complement to appearance features. By estimating body keypoints with tools such as OpenPose~\cite{cao_openpose_2019} and subsequently encoding the resulting joint graphs with spatial temporal graph convolutional networks (ST-GCN)~\cite{yan_stgcn_2018}, these methods achieve a degree of viewpoint and background invariance not attainable from raw pixel inputs. Graph neural network (GNN) variants applied to interaction-level violence detection~\cite{yun_missiongnn_2024} have reported competitive accuracy on controlled benchmarks. However, skeleton-based pipelines exhibit a critical dependency on reliable pose estimation: partial occlusion, low image resolution, or large inter-person distances---all common in real-world CCTV footage---frequently produce incomplete or erroneous skeleton sequences that degrade downstream classification. Furthermore, GNN architectures require explicit construction of a person-interaction graph, making them sensitive to tracking failures and computationally intensive when the number of persons in the scene varies dynamically.
 
-However, violence is inherently a temporal process that unfolds over multiple frames.
-To model temporal dynamics, many studies combine CNNs with recurrent neural networks, particularly long short-term memory (LSTM)~\cite{hochreiter1997lstm} and bidirectional LSTM (BiLSTM) architectures~\cite{patel_realtime_2021, traore_violence_2024, sudhakaran_learning_2017}.
+To mitigate these limitations, recent work has explored multi-stage detection pipelines that interleave candidate region extraction, motion-based screening, and deep classification~\cite{yun_missiongnn_2024, nguyen_multistage_2021}. By discarding irrelevant background regions prior to deep inference, these cascaded architectures reduce computational overhead and suppress false alarms triggered by bystander motion. Entropy-based filtering is frequently employed as an intermediate screening step to reject non-violent activities that share superficial kinematic similarities with genuine violence.
 
+Our prior work [CITE-OWN-PAPER] explored a multi-stage framework that couples YOLO-based candidate detection with entropy-driven motion filtering and a CNN--BiLSTM classifier operating on cropped ROI sequences. That system achieved approximately 87\% accuracy on a combined benchmark; however, the CNN backbone imposed a fixed receptive field and lacked the capacity to model contextual relationships between interacting individuals, while the BiLSTM encoder struggled to capture long-range temporal dependencies beyond clips of roughly 30 frames. These structural constraints led to residual confusion between high-energy non-violent interactions---such as contact sports and animated group activities---and genuine violence, manifesting as a persistent false-positive rate that limited practical deployment.
 
-These CNN--LSTM-based frameworks have demonstrated improved performance compared to purely spatial models~\cite{pathak_streamlining_2024}.
-Nevertheless, they still suffer from several limitations, including limited receptive fields in spatial modeling, sequential computation bottlenecks in recurrent units, and difficulties in capturing long-range temporal dependencies.
-As a result, false positives frequently occur in crowded scenes or visually ambiguous situations.
+More recently, Transformer-based architectures have emerged as a compelling alternative to convolutional and recurrent designs for video understanding~\cite{vaswani_attention_2023, dosovitskiy_image_2021, bertasius_is_2021, arnab_vivit_2021, pan_violence_2022}. Self-attention mechanisms enable Transformers to establish direct pairwise dependencies between any two temporal positions in a sequence, bypassing the sequential computation constraints of RNNs and the locality constraints of CNNs. Violence-specific attention-based models~\cite{pan_violence_2022} have demonstrated measurable gains over CNN--LSTM baselines. Nonetheless, vanilla video Transformers process full-resolution frames and thus incur quadratic complexity in the number of spatial tokens, making real-time inference on resource-constrained CCTV hardware impractical.
 
+Hierarchical window-based architectures, particularly the Swin Transformer~\cite{9710580}, address this scalability concern by restricting self-attention to local non-overlapping windows and introducing a shifted-window mechanism to enable cross-window information exchange. This design achieves linear computational complexity with respect to image resolution while preserving strong representational power across multiple spatial scales. In the violence detection context, applying such a backbone exclusively to cropped interaction regions---rather than full frames---further amplifies its computational advantages and suppresses feature-level noise from irrelevant background regions.
 
-To improve robustness in real-world scenarios, several studies propose multi-stage pipelines that integrate candidate region detection, motion analysis, and deep classification~\cite{yun_missiongnn_2024, nguyen_multistage_2021}.
+Building on these observations, the present work advances the multi-stage paradigm by replacing the CNN--BiLSTM recognition core with a Transformer-based spatiotemporal encoder. Specifically, an ROI-based Swin Transformer provides hierarchical spatial encoding of candidate interaction regions, while a lightweight Temporal Transformer models clip-level behavioral evolution across frames. This design directly addresses the spatial context limitation and the long-range temporal dependency bottleneck identified in both skeleton-graph approaches and prior CNN--LSTM frameworks.
 
-
-By filtering out irrelevant background regions and focusing on suspicious human interactions, these approaches reduce computational cost and improve detection accuracy.
-Entropy-based motion analysis is often employed as an intermediate step to suppress non-violent activities that visually resemble violent behavior.
-
-Our previous work % TODO: add \cite{your_previous_paper_key} once BibTeX entry is created
-follows this line of research by introducing a multi-stage violence detection framework that combines YOLO-based candidate detection, entropy-based filtering, and CNN--BiLSTM video classification.
-
-
-While this approach achieves encouraging results, its reliance on CNN--BiLSTM architectures limits its ability to model complex spatial contexts and long-range temporal dependencies efficiently.
-
-Recently, Transformer-based models have emerged as a powerful alternative to convolutional and recurrent architectures for video understanding tasks~\cite{vaswani_attention_2023, dosovitskiy_image_2021, bertasius_is_2021, arnab_vivit_2021, pan_violence_2022}.
-By leveraging self-attention mechanisms, Transformers can capture long-range dependencies in both spatial and temporal domains.
-
-
-Despite their strong performance, most existing video Transformers operate on full video frames and require substantial computational resources, which makes them impractical for real-time CCTV surveillance.
-
-
-To address these limitations, hierarchical and window-based Transformer architectures, such as the Swin Transformer~\cite{9710580}, have been proposed to reduce computational complexity while maintaining high representational power.
-
-
-In summary, prior studies demonstrate the effectiveness of multi-stage violence detection pipelines and CNN--LSTM-based spatiotemporal modeling.
-However, existing methods remain limited in complex CCTV scenarios due to insufficient spatial context modeling and inefficient temporal dependency learning.
-Motivated by these observations, this work extends previous multi-stage frameworks by replacing CNN--BiLSTM architectures with a Transformer-based design that integrates an ROI-based Swin Transformer and a Temporal Transformer for efficient and robust spatiotemporal representation learning.
 
 \section{Proposed Method}
 To address the challenge of real-time violence detection, the primary difficulty lies not only in model accuracy but also in effectively filtering out noise from normal activities, which constitute the majority of surveillance footage. Therefore, rather than feeding raw data directly into resource-intensive deep neural networks, this study constructs a multi-stage screening mechanism whose overall architecture is depicted in Fig.~\ref{fig:full_process}. The proposed framework comprises two principal stages: (i)~a dynamics-based preliminary screening stage that performs adaptive grouping of tracked individuals, extracts micro-physical kinematic features within a sliding temporal window, and applies an SVM pre-classifier to efficiently discard non-violent candidates; and (ii)~a deep recognition stage in which an ROI-based Swin Transformer encodes hierarchical spatial representations from candidate regions, followed by a Temporal Transformer that captures long-range temporal dependencies across frames, ultimately yielding a binary violence prediction through clip-level aggregation and MLP classification.
