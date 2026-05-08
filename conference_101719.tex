@@ -275,7 +275,7 @@ of all temporal window samples, forwarding roughly 33\%
 of the candidates to Stage~B for deep analysis. At that point, the system extracts a $T = 16$ consecutive-frame ROI sequence centered on the flagged time instant, where the Swin--Temporal Transformer provides the fine-grained spatiotemporal reasoning that the compact physical features cannot achieve.
 
 \subsection{ROI-based Swin–Temporal Transformer}
-Dynamics-based filters are highly effective in noise removal, but they cannot replace a deep recognizer capable of understanding motion regions at risk of violence because they only eliminate normal scenes based on motion intensity metrics without identifying confounding factors (e.g., hand collisions, aggressive actions, erratic hand movements, etc.). Therefore, we designed an additional step to address these issues, operating on the previously identified high-risk groups. In this step, the ROI-based Swin Transformer is applied in conjunction with a Temporal Transformer encoder for fine-grained violence recognition.
+While the dynamics-based filter in Stage~A effectively reduces the candidate pool by rejecting interactions with insufficient kinematic evidence, it cannot distinguish between genuinely violent events and confounding activities that share similar motion signatures---such as abrupt physical contact in sports, animated celebrations, or forceful greetings. These ambiguous cases require a spatial and temporal understanding of body posture, relative movement, and interaction dynamics that handcrafted kinematic descriptors fundamentally cannot provide. Stage~B addresses this by applying an ROI-based Swin Transformer~\cite{9710580} for hierarchical spatial encoding of candidate regions, coupled with a Temporal Transformer encoder for clip-level violence recognition.
 
 \begin{figure}[!htbp]
     \centering
@@ -287,106 +287,93 @@ Dynamics-based filters are highly effective in noise removal, but they cannot re
 
 \subsubsection{Swin Transformer for ROI Spatial Feature Extraction}
 
-In CCTV surveillance systems for violent behavior, violent actions typically appear as interactions between individuals. These interaction patterns are often very subtle, small in size, occur within short durations, are easily occluded, and susceptible to background noise. Therefore, a robust spatial encoder is required to resolve fine-grained details and model contextual relationships within interaction regions.
+Violent interactions in surveillance footage are characterized by subtle, spatially compact patterns of physical contact---rapid limb movements, forceful body displacements, and close-range interpersonal dynamics---that are easily occluded by neighboring persons or obscured by cluttered backgrounds. Modeling these cues demands a spatial encoder capable of resolving fine-grained local structure while simultaneously capturing contextual relationships across the entire interaction region.
 
-Here we use Swin Transformer~\cite{9710580} as the spatial encoder for the Regions of Interest (ROIs) that were filtered in stage A. This architecture allows the model to focus locally within small windows while maintaining the ability to exchange information between regions through the shifted window attention mechanism.
+The Swin Transformer~\cite{9710580} satisfies both requirements through its hierarchical, window-based self-attention design. Each ROI frame $I_t \in \mathbb{R}^{H \times W \times 3}$ is partitioned into non-overlapping patches, which are projected to embedding vectors via a linear layer. The backbone comprises four stages; at each stage, patch merging progressively halves the spatial resolution while doubling the channel dimension, constructing a multi-scale feature hierarchy. Within each stage, Transformer blocks alternate between window-based multi-head self-attention (W-MSA), which captures intra-window structure at low computational cost, and shifted window-based multi-head self-attention (SW-MSA), which establishes cross-window information exchange. The early stages of this hierarchy retain high-resolution spatial detail---critical for resolving joint-level interactions such as hand contact or arm extension---while deeper stages aggregate these local cues into semantically rich representations of body posture and group configuration.
 
-As illustrated in Fig.~\ref{fig:full_process}, Swin divides the input ROI image ($I_t \in \mathbb{R}^{H \times W \times 3}$) into non-overlapping patches, then maps each patch to an embedding vector through a linear layer. The backbone is organized into multiple stages with progressively decreasing spatial resolution and increasing feature channels through the patch merging mechanism. Within each stage, Swin stacks Transformer blocks that alternate between (i) window-based multi-head self-attention (W-MSA) and (ii) shifted window-based multi-head self-attention (SW-MSA). This hierarchical windowed attention mechanism is particularly suitable for ROI processing, helping small details like hand or arm movements to be preserved in early layers, while deeper layers string these details together to recognize overall body posture and understand the positional relationships between people in the same group.
-
-The output of Swin for each ROI frame sample $I_t$ is a set of tokens or a feature map with height in the feature space. To ensure compatibility with the subsequent temporal encoder, we need to convert Swin's output into a single frame-level descriptor through global pooling:
+The output of the Swin backbone for each ROI frame $I_t$ is a spatial feature map $F_t$, which is condensed into a single frame-level descriptor via global average pooling (GAP):
 \begin{equation}
 F_t = f_{\text{swin}}(I_t), \quad z_t = \text{GAP}(F_t) \in \mathbb{R}^d
 \end{equation}
 
-Additionally, $z_t$ can be linearly projected to a fixed dimension $d_0$ for easy comparison with previous models:
+\noindent To standardize the descriptor dimension across backbone variants, $z_t$ is passed through a linear projection layer:
 \begin{equation}
 \tilde{z}_t = Wz_t + b, \quad \tilde{z}_t \in \mathbb{R}^{d_0}
 \end{equation}
 
-The key point here is that instead of wasting resources scanning the entire frame, we only focus the feature extraction module on the previously identified ROI. This reduces the computational burden of the recognition stage, suppresses irrelevant visual clutter, and improves classification precision.
+\noindent where $d_0 = 768$ in our implementation, matching the hidden dimension of the Temporal Transformer encoder.
 
-Applying Swin Transformer only on filtered ROIs rather than the entire frame plays a crucial role.
+Restricting Swin encoding to Stage~A-filtered ROIs rather than full video frames yields two compounding benefits. First, the reduction in spatial extent directly decreases the number of patch tokens processed per forward pass, which is critical for maintaining throughput in a continuous CCTV stream. Second, and more importantly, confining attention computation to the interaction region suppresses interference from irrelevant background motion---passersby, vegetation, traffic---that would otherwise dilute the feature representation and increase the false-positive rate in downstream classification.
 
-First, ROIs reduce the number of pixels and tokens that need to be processed. This is essential for real-time CCTV systems that must sustain stable, low-latency inference over extended operational periods.
-
-Second, applying Swin's window-based attention mechanism helps the model maintain stability in cases where violent actions are partially occluded or crowded. Instead of being dominated by noise from many unrelated movements, the model focuses on interactions within the ROI, thereby enhancing the signal-to-noise ratio.
 
 \subsubsection{Temporal Transformer for Clip-level Violence Modeling}
 
-Violent behavior is inherently dynamic, unfolding through successive interactions between individuals. The distinction often does not lie in a single frame but in short transitions such as: approach--contact--recoil. Therefore, classification based on spatial features at isolated time points can lead to confusion between actual violence and seemingly harmful rapid movements. For these reasons, we employ a Temporal Transformer encoder to aggregate ROI features over time and perform classification at the clip level.
+Violence is a temporally structured phenomenon: a complete violent event typically progresses through a recognizable sequence of phases---approach, physical contact, and recoil---each of which may individually resemble non-violent motion when examined in isolation. Frame-level classifiers are inherently blind to such sequential structure, and recurrent architectures such as LSTM are susceptible to cumulative hidden-state degradation over longer clips. The Temporal Transformer encoder addresses these limitations by modeling behavioral dynamics directly in the clip-level feature space through global self-attention over the temporal axis.
 
-For each ROI generated from previous stages, we construct a clip consisting of $T$ frames sampled uniformly over time:
+For each Stage~A-filtered ROI, a clip of $T$ uniformly sampled frames is constructed:
 
 \begin{equation}
 \{I_t\}_{t=1}^{T}
 \label{eq:clip_frames}
 \end{equation}
 
-In our experiments, we chose $T = 16$ to ensure temporal context while maintaining computational cost suitable for real-time inference. To reduce redundancy between consecutive frames, we apply uniform temporal sampling at an effective rate of $s$ fps. This helps expand the observation window without increasing the number of input tokens.
+\noindent We set $T = 16$, a choice that balances temporal context coverage against per-clip inference latency. To extend the effective observation window without increasing the token count, frames are sampled at a stride of $s$ frames, where $s$ is determined by the source frame rate.
 
-During model training, light temporal augmentations are applied with the goal of increasing robustness to real-world CCTV, including: random clip start, small temporal jitter in sampling offset, and optional limited frame dropping. These techniques help the model learn features invariant to the absolute temporal position of events.
+During training, stochastic temporal augmentations are applied to promote invariance to absolute clip position: random clip start offset, small temporal jitter on the sampling stride, and probabilistic frame dropout. These augmentations are applied independently per clip and do not alter the number of tokens consumed by the Temporal Transformer.
 
-As defined in Section~III-B1, for each ROI frame we have the descriptor:
-
-\begin{equation}
-\tilde{z}_t \in \mathbb{R}^{d_0}
-\label{eq:frame_descriptor}
-\end{equation}
-
-The clip feature sequence is represented as a matrix:
+Using the frame-level descriptor $\tilde{z}_t \in \mathbb{R}^{d_0}$ produced by the Swin encoder for each frame, the clip is represented as a matrix:
 
 \begin{equation}
 Z = [\tilde{z}_1, \tilde{z}_2, \ldots, \tilde{z}_T] \in \mathbb{R}^{T \times d_0}
 \label{eq:clip_matrix}
 \end{equation}
 
-Since Transformers are permutation-invariant, temporal order information is added through positional encoding $P \in \mathbb{R}^{T \times d_0}$:
+\noindent Since self-attention is permutation-invariant, temporal order is injected by adding a learnable positional encoding $P \in \mathbb{R}^{T \times d_0}$ to the token sequence:
 
 \begin{equation}
 H^0 = Z + P
 \label{eq:positional_encoding}
 \end{equation}
 
-At each layer $\ell$, the encoder performs multi-head self-attention along the temporal axis:
+\noindent The input $H^0$ is then processed by $L$ successive Transformer encoder layers, each comprising multi-head self-attention (MHSA) over the temporal axis followed by a position-wise feed-forward sublayer and residual connections:
 
 \begin{equation}
 H^\ell = \text{TransformerEnc}(H^{\ell-1}), \quad \ell = 1, \ldots, L
 \label{eq:transformer_layer}
 \end{equation}
 
-Attention here is computed between frames in the clip, allowing the model to determine the relevance between every pair of time points $(t_i, t_j)$. This design helps model short- and long-term dependencies, enabling the network to selectively attend to frames containing critical interaction cues without relying on strict sequential repetition like RNN/LSTM.
+\noindent In our configuration, $L = 2$ encoder layers are used, each with $h = 8$ attention heads operating on the full $d_0 = 768$-dimensional space (head dimension $d_k = 96$). A dropout rate of $p = 0.1$ is applied to both the attention weights and the feed-forward activations within each layer to mitigate overfitting on the relatively compact ROI clip dataset.
 
-After $L$ transformer layers, we have:
+Self-attention computes pairwise compatibility scores between every pair of temporal positions $(t_i, t_j)$, enabling the encoder to selectively integrate evidence from the approach phase, the moment of contact, and the recoil phase simultaneously. This global receptive field over the clip is the primary architectural advantage over LSTM, which must propagate information sequentially and is prone to gradient attenuation across long time spans.
 
-\begin{equation}
-H^L \in \mathbb{R}^{T \times d_0}
-\label{eq:final_hidden}
-\end{equation}
-
-To aggregate into a clip-level representation, we use temporal mean pooling:
+After $L$ encoder layers, the clip representation $H^L \in \mathbb{R}^{T \times d_0}$ is aggregated via temporal mean pooling:
 
 \begin{equation}
-g = \frac{1}{T} \sum_{t=1}^{T} H^L[t] \in \mathbb{R}^d
+g = \frac{1}{T} \sum_{t=1}^{T} H^L[t] \in \mathbb{R}^{d_0}
 \label{eq:temporal_pooling}
 \end{equation}
 
-This pooling acts as a global temporal integrator, producing a vector representing the entire behavior in the clip.
+\noindent Mean pooling assigns equal contribution to all frames, which is appropriate given that violent actions may appear at any position within the sampled clip rather than being concentrated at fixed temporal locations.
 
-A lightweight MLP classifier produces the final binary violence prediction. The model is trained end-to-end with cross-entropy loss. The entire pipeline from Swin features to temporal encoding and classification is illustrated in Fig.~\ref{fig:swin_temporal_arch}.
+The pooled vector $g$ is passed through a two-layer MLP with a hidden dimension of $d_0 / 2 = 384$ and ReLU activation, followed by a single linear output unit. The model is optimized end-to-end with binary cross-entropy with logits loss (\texttt{BCEWithLogitsLoss}), which numerically combines the sigmoid activation and binary cross-entropy into a single stable operation:
 
-Thanks to the temporal self-attention mechanism, the model can distinguish between prolonged aggressive behavior and rapid but harmless gestures—by viewing each frame in relation to surrounding frames and the entire sequence. As a result, the model exhibits greater robustness to incidental motion artifacts and produces fewer false alarms, particularly in crowded scenes where single-frame motion cues are inherently ambiguous.
+\begin{equation}
+\mathcal{L} = -\bigl[y \log \sigma(\hat{y}) + (1 - y) \log (1 - \sigma(\hat{y}))\bigr]
+\label{eq:bce_loss}
+\end{equation}
+
+\noindent where $\hat{y}$ is the raw logit output of the MLP and $y \in \{0, 1\}$ is the ground-truth violence label.
+
+The temporal self-attention mechanism confers two concrete operational benefits over frame-level or recurrent classifiers. First, by jointly attending to all frames, the encoder can identify approach--contact--recoil transitions whose decisive signal is distributed across multiple non-adjacent frames---a structure that LSTM hidden states may fail to preserve intact over 16 time steps. Second, the absence of sequential computation removes the dependency on error-free tracking continuity: a missed detection on one or two frames within the clip does not corrupt the representation for subsequent frames, as each token is independently encoded before attention is applied.
 
 \subsubsection{Integrating Swin and Temporal Transformer in the Multi-stage Pipeline}
 
-Stage~B operates exclusively on the subset of ROIs that pass Stage~A filtering, rather than processing full frames directly. The preceding stages first detect and track human groups to localize potential interaction regions, then apply motion- and dynamics-based screening to reject evidently non-violent activities. Consequently, Stage~B receives a substantially reduced set of high-risk candidates for fine-grained recognition.
+Stage~B operates exclusively on the subset of ROIs forwarded by Stage~A, thereby avoiding full-frame processing and the associated computational overhead. Within Stage~B, the Swin backbone provides spatial encoding for each ROI frame, extracting hierarchical descriptors that capture both fine-grained interaction details and broader body-level context. The Temporal Transformer then aggregates these per-frame descriptors across the clip, modeling the temporal progression of the interaction to produce a single clip-level representation for binary violence classification.
 
-Within Stage~B, the Swin Transformer performs spatial encoding for each ROI frame and extracts hierarchical local descriptors, while the Temporal Transformer models behavioral evolution across time. This design enables joint reasoning over (i) fine-grained interpersonal interactions at the ROI level and (ii) clip-level temporal context.
+A key design principle of this architecture is the explicit decoupling of spatial representation learning from temporal dependency modeling. The Swin backbone is pretrained on large-scale image data~\cite{deng_imagenet_2009} and fine-tuned as a feature extractor, while the Temporal Transformer is trained from scratch on the ROI clip dataset. This separation allows each module to specialize in its respective objective and simplifies the optimization landscape relative to jointly trained 3D convolutional architectures.
 
-For each candidate ROI, a short clip of $T$ consecutive frames is constructed. Each frame is encoded by a shared-weight Swin backbone to obtain frame-level embeddings, which are then aggregated by the Temporal Transformer to form a clip-level representation used for binary violence classification.
+The cascade design delivers two compounding operational benefits. First, because Stage~B processes only the filtered ROI subset, average GPU utilization per video is substantially lower than an unconstrained deep recognizer applied to all detected person-group crops. Second, the spatial gating performed by Stage~A delivers a cleaner input distribution to Stage~B: candidate clips have already passed a kinematic plausibility check, reducing the prevalence of easily-dismissed non-violent samples in the deep classifier's input and concentrating Stage~B capacity on genuinely ambiguous cases.
 
-A key advantage of this architecture is the explicit decoupling of spatial representation learning and temporal dependency modeling. This separation improves optimization stability and allows each module to specialize in its respective objective.
-
-The cascade design provides two practical benefits. First, because Stage~B evaluates only filtered ROIs instead of full-resolution frames, computational overhead is significantly reduced, facilitating real-time deployment. Second, activating deep inference only for high-risk candidates suppresses false positives caused by background motion and benign high-dynamics activities, thereby improving long-horizon operational stability in CCTV monitoring.
 
 \section{Experimental Results}
 
@@ -581,11 +568,11 @@ In terms of throughput, Stage~B averages 41.72~ms per clip on the RTX~2080~Ti, r
 
 \section{Conclusion and Future Work}
 
-This paper proposes a multi-stage violence detection framework for real-time CCTV surveillance systems, addressing limitations of existing methods in handling complex situations like crowded scenes, small violent interactions, and confusing fast movements. The main contributions include: (1) an intelligent preliminary filtering mechanism based on microphysical features and adaptive grouping, effectively eliminating irrelevant scenes before applying deep learning models, (2) integration of ROI-based Swin Transformer to extract spatial features focused on high-risk regions, and (3) application of Temporal Transformer encoder to directly capture long-term temporal dependencies, overcoming limitations of recurrent architectures.
+This paper proposes a multi-stage violence detection framework for real-time CCTV surveillance systems, addressing limitations of existing methods in handling complex situations such as crowded scenes, small-scale violent interactions, and fast movements that visually resemble aggression. The principal contributions are threefold: (1) a dynamics-based preliminary screening mechanism employing adaptive proximity grouping and a 7-dimensional micro-physical feature descriptor with SVM pre-classification, which efficiently suppresses non-violent candidates before invoking deep inference; (2) an ROI-based Swin Transformer spatial encoder that concentrates representational capacity on high-risk interaction regions, eliminating background interference that degrades full-frame models; and (3) a Temporal Transformer encoder that models behavioral evolution across a 16-frame clip through global self-attention, overcoming the sequential bottleneck and long-range dependency limitations of recurrent architectures. Evaluated on a unified benchmark of 1,149 held-out clips drawn from six heterogeneous sources, the complete pipeline achieves 91.8\% accuracy, 91.4\% F1-score, and 92.04\% AUC-ROC, while sustaining real-time throughput at 24~FPS on a single mid-range GPU.
 
-The system was comprehensively evaluated on six diverse datasets, demonstrating strong generalization capability and real-time performance. The PTIT dataset with 500 real CCTV videos from Hanoi contributes additional assessment of robustness under local deployment conditions. Results show that the proposed framework achieves an optimal balance between accuracy, generalization, and real-time performance, meeting the requirements of practical surveillance systems.
+\noindent\textbf{Limitations.} Despite these results, the framework operates under several structural constraints that practitioners should consider before deployment. First, the multi-person interaction paradigm underlying Stage~A becomes ineffective in two edge cases: (i) \textit{complete mutual occlusion}, where tracked bounding boxes collapse or merge under dense crowd pressure, preventing reliable centroid estimation and rendering adaptive grouping unreliable; and (ii) \textit{single-person violence}, such as self-harm or weapon-based attacks directed at non-present targets, where no interaction pair is formed and Stage~A produces no candidate group to forward to Stage~B. Second, the SVM gatekeeper in Stage~A is calibrated to maximize recall at the cost of moderate precision, yet it can still miss violent events whose kinematic signature falls below the physics-based thresholds---most notably slow-escalation assaults where peak acceleration remains subdued across the 10-frame sliding window, or restraint scenarios in which the aggressor's movement is deliberately controlled to avoid triggering motion-energy filters. Any sample rejected at this stage is permanently excluded from Stage~B consideration and cannot be recovered by the deep recognizer. Third, and most foundationally, the entire pipeline inherits the detection quality of the YOLOv8 person detector~\cite{jocher_yolov8_2023}. Missed detections in low-illumination environments, heavy rain artifacts, extreme fisheye distortion near frame boundaries, or extreme scale variation between distant and proximate subjects directly reduce the number of valid tracks available for grouping, potentially causing genuine violent interactions to be silently dropped before any feature analysis is performed. Mitigating this dependency through detector ensembling or domain-adaptive fine-tuning on target camera profiles represents a necessary step toward robust operational deployment.
 
-Future research will focus on three main directions. First, exploring more efficient Transformer architectures like Swin V2~\cite{liu_swin_2022} or MobileViT to reduce computational cost, while integrating audio information through multi-modal attention to improve detection in visually ambiguous situations. Second, expanding multi-class classification capabilities to distinguish different types of violence (fighting, robbery, weapon attacks), incorporating severity estimation and early prediction of violence escalation to enable timely intervention. Third, conducting long-term pilot deployments in real-world environments such as schools or shopping centers to evaluate deployment effectiveness and collect feedback from security personnel, while researching privacy protection solutions through federated learning and algorithmic bias mitigation.
+\noindent\textbf{Future Work.} Three directions are identified for subsequent research. First, the spatial encoder could be upgraded to Swin Transformer V2~\cite{liu_swin_2022} or a lightweight mobile variant to lower per-clip latency and extend applicability to embedded CCTV hardware; simultaneously, incorporating synchronized audio streams through a cross-modal attention mechanism may resolve visually ambiguous cases that neither kinematic nor appearance features can discriminate reliably. Second, the binary classification objective could be extended to a multi-class formulation distinguishing assault, robbery, weapon display, and crowd stampede, coupled with a severity regression head to enable graduated alert escalation and reduce operator fatigue caused by uniform alarm treatment. Third, the dependence on YOLOv8 detection quality motivates investigation of detector-agnostic grouping strategies---for example, keypoint-based proximity estimation that remains robust under partial occlusion---and long-horizon pilot deployments in live environments, including schools and transit hubs, to gather deployment feedback and assess algorithmic bias across demographic groups under realistic operational conditions.
 \section*{ACKNOWLEDGMENT}
 
 \bibliographystyle{ieeetr}
