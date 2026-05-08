@@ -13,10 +13,18 @@
 \usepackage{xcolor}
 \usepackage{subcaption}
 \usepackage{float}
+\usepackage{multirow}
 \usepackage[numbers]{natbib}
 
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+
+\renewcommand{\topfraction}{0.95}
+\renewcommand{\bottomfraction}{0.95}
+\renewcommand{\dbltopfraction}{0.95}
+\renewcommand{\textfraction}{0.05}
+\renewcommand{\floatpagefraction}{0.95}
+\renewcommand{\dblfloatpagefraction}{0.95}
 
 \begin{document}
 
@@ -85,7 +93,7 @@ Building on these observations, the present work advances the multi-stage paradi
 \section{Proposed Method}
 To address the challenge of real-time violence detection, the primary difficulty lies not only in model accuracy but also in effectively filtering out noise from normal activities, which constitute the majority of surveillance footage. Therefore, rather than feeding raw data directly into resource-intensive deep neural networks, this study constructs a multi-stage screening mechanism whose overall architecture is depicted in Fig.~\ref{fig:full_process}. The proposed framework comprises two principal stages: (i)~a dynamics-based preliminary screening stage that performs adaptive grouping of tracked individuals, extracts micro-physical kinematic features within a sliding temporal window, and applies an SVM pre-classifier to efficiently discard non-violent candidates; and (ii)~a deep recognition stage in which an ROI-based Swin Transformer encodes hierarchical spatial representations from candidate regions, followed by a Temporal Transformer that captures long-range temporal dependencies across frames, ultimately yielding a binary violence prediction through clip-level aggregation and MLP classification.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.85\columnwidth]{image/full_process.png}
     \caption{Overview of the proposed multi-stage violence detection framework. Stage~A performs candidate detection, adaptive grouping, kinematic feature extraction, and SVM-based early screening. Stage~B applies ROI-based Swin Transformer spatial encoding followed by Temporal Transformer modeling for final binary violence prediction.}
@@ -96,9 +104,9 @@ To address the challenge of real-time violence detection, the primary difficulty
 
 The first stage of the proposed framework is designed to efficiently identify and filter potential violent interactions from continuous surveillance streams before invoking computationally expensive deep learning models. As illustrated in Fig.~\ref{fig:high_risk_process}, this stage operates as a sequential pipeline comprising five key modules: (i)~multi-source data normalization, which standardizes heterogeneous input videos in both spatial and temporal domains; (ii)~real-time human detection and tracking using YOLOv8~\cite{jocher_yolov8_2023} and DeepSORT~\cite{wojke_simple_2017}; (iii)~adaptive proximity-based grouping that dynamically clusters individuals into interaction groups based on perspective-aware distance thresholds; (iv)~micro-physical and visual feature extraction within a sliding temporal window, producing a compact 7-dimensional descriptor that encodes kinematic intensity, impulse characteristics, directional chaos, and optical flow energy; and (v)~a two-tier filtering mechanism combining physics-based thresholding with an SVM pre-classifier to rapidly discard non-violent candidates. By performing early-stage elimination of the vast majority of normal activities, this module substantially reduces the computational burden on the subsequent deep recognition stage while preserving high recall for genuinely violent interactions.
 
-\begin{figure}[!htbp]
+\begin{figure}[H]
     \centering
-    \includegraphics[width=\columnwidth]{image/hig_risk_detect_process.png}
+    \includegraphics[width=\columnwidth]{image/hig_risk_detect_process_2.png}
     \caption{Detailed pipeline of Stage~A: High-risk Group Detection and Dynamics-based Preliminary Classification. The pipeline processes raw surveillance video through preprocessing, YOLOv8 detection with DeepSORT tracking, adaptive grouping based on scale-aware proximity thresholds, physical and heatmap feature extraction, motion-based data filtering, and SVM classification to produce an early violence risk assessment.}
     \label{fig:high_risk_process}
 \end{figure}
@@ -198,12 +206,7 @@ V_{raw} = [\mu_v, \sigma_v, \mu_a, A_{max}, S_{interaction}, \mu_{heat}, \sigma_
     \item \textbf{Visual Energy Features ($\mu_{heat}, \sigma_{heat}$):} Parallel to the bounding box analysis, an Optical Flow Heatmap is generated. $\mu_{heat}$ measures the total motion intensity across the entire region of interest, helping to detect subtle limb movements that the bounding box might miss. Meanwhile, $\sigma_{heat}$ measures spatial distribution; a fast punch creates a localized bright spot on a dark background, leading to a high standard deviation.
 \end{itemize}
 
-% [PLACEHOLDER FOR FIGURE: HEATMAP VISUALIZATION]
-% \begin{figure}[htbp]
-% \centerline{\includegraphics[width=\columnwidth]{heatmap_example.png}}
-% \caption{Optical Flow Heatmap comparison between normal and violent scenes.}
-% \label{fig:heatmap}
-% \end{figure}
+
 \subsubsection{Filtering Mechanism and Early Classification}
 
 To optimize real-time performance, we design a two-step filtering process applied to each temporal window sample---that is, each $V_{raw}$ vector aggregated from the most recent 10-frame sliding window of a given interaction group. The first step is a physics-based thresholding filter that immediately discards samples exhibiting low motion intensity. A window sample is retained as a violence candidate only if it satisfies the impulse condition ($A_{max} > 15.0$) or the visual energy condition ($\mu_{heat} > 2.0$). These thresholds are derived from empirical observations that routine daily activities---walking, standing, or casual gesturing---rarely produce a velocity variation exceeding 15\% of body height within a sub-second interval. On our training set, this step alone eliminates approximately 60\%
@@ -252,8 +255,10 @@ of the candidates to Stage~B for deep analysis. At that point, the system extrac
 
 To quantify Stage~A's impact at the video level---the metric most operationally relevant for deployment---we analyze whether each violent source video generates at least one forwarded window to Stage~B. On the training partition, Stage~A successfully forwards at least one candidate window for \textbf{96.2\%} of all violent source videos, confirming that fewer than 4\% of violent events are permanently suppressed before reaching the deep recognizer. The remaining 3.8\% correspond predominantly to slow-escalation scenarios in which neither $A_{max}$ nor $\mu_{heat}$ exceeds the physics-based thresholds across the entire 10-frame sliding window---a failure mode explicitly acknowledged in the Limitations section.
 
+The output of Stage~A is a set of flagged temporal windows, each associated with a specific interaction group and timestamp. For each flagged window, we extract the corresponding group's ROI by computing the union bounding box of all tracked individuals within that group, padded by 15\% to preserve peripheral context. A clip of $T = 16$ consecutive frames is then sampled uniformly from a temporal neighborhood extending slightly beyond the original 10-frame analysis window, capturing both the preceding approach phase and the subsequent aftermath. Each frame is cropped to the ROI region and resized to $224 \times 224$ pixels. This clip constitutes the input to Stage~B. By construction, Stage~B processes only the filtered, high-risk candidates rather than the full video stream, inheriting the computational savings established by Stage~A's early elimination of approximately 67\% of all temporal windows.
+
 \subsection{ROI-based Swin–Temporal Transformer}
-While the dynamics-based filter in Stage~A effectively reduces the candidate pool by rejecting interactions with insufficient kinematic evidence, it cannot distinguish between genuinely violent events and confounding activities that share similar motion signatures---such as abrupt physical contact in sports, animated celebrations, or forceful greetings. These ambiguous cases require a spatial and temporal understanding of body posture, relative movement, and interaction dynamics that handcrafted kinematic descriptors fundamentally cannot provide. Stage~B addresses this by applying an ROI-based Swin Transformer~\cite{9710580} for hierarchical spatial encoding of candidate regions, coupled with a Temporal Transformer encoder for clip-level violence recognition.
+While the dynamics-based filter in Stage~A effectively reduces the candidate pool by rejecting interactions with insufficient kinematic evidence, it cannot distinguish between genuinely violent events and confounding activities that share similar motion signatures---such as abrupt physical contact in sports, animated celebrations, or forceful greetings. These ambiguous cases require a spatial and temporal understanding of body posture, relative movement, and interaction dynamics that handcrafted kinematic descriptors fundamentally cannot provide. Specifically, while Stage~A leverages optical-flow-derived statistics to quantify gross motion intensity, Stage~B processes raw RGB frames to capture appearance-level cues---facial expressions, body posture, and object interactions---that motion magnitude alone cannot resolve. Stage~B addresses this by applying an ROI-based Swin Transformer~\cite{9710580} for hierarchical spatial encoding of candidate regions, coupled with a Temporal Transformer encoder for clip-level violence recognition.
 
 \begin{figure}[!htbp]
     \centering
@@ -352,6 +357,15 @@ A key design principle of this architecture is the explicit decoupling of spatia
 
 The cascade design delivers two compounding operational benefits. First, because Stage~B processes only the filtered ROI subset, average GPU utilization per video is substantially lower than an unconstrained deep recognizer applied to all detected person-group crops. Second, the spatial gating performed by Stage~A delivers a cleaner input distribution to Stage~B: candidate clips have already passed a kinematic plausibility check, reducing the prevalence of easily-dismissed non-violent samples in the deep classifier's input and concentrating Stage~B capacity on genuinely ambiguous cases.
 
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=0.9\linewidth]{image/violance.png}\\[0.3em]
+{\small (a) True Positives: Violent interactions under varying conditions.}\\[0.8em]
+\includegraphics[width=0.9\linewidth]{image/violance_night.jpg}\\[0.3em]
+{\small (b) Hard Negatives: Non-violent sequences including hugging, dancing, and fast-moving objects.}
+\caption{Sample frames from the Unified Benchmark showcasing both true positive violent events and challenging hard negative scenarios.}
+\label{fig:unified_samples}
+\end{figure*}
 
 \section{Experimental Results}
 
@@ -382,15 +396,7 @@ This collection totals 5746 videos. We split them evenly between violent and non
 \end{tabular}
 \end{table}
 
-\begin{figure*}[!htbp]
-\centering
-\includegraphics[width=\linewidth]{image/violance.png}\\[0.3em]
-{\small (a) True Positives: Violent interactions under varying conditions.}\\[0.8em]
-\includegraphics[width=\linewidth]{image/violance_night.jpg}\\[0.3em]
-{\small (b) Hard Negatives: Non-violent sequences including hugging, dancing, and fast-moving objects.}
-\caption{Sample frames from the Unified Benchmark showcasing both true positive violent events and challenging hard negative scenarios.}
-\label{fig:unified_samples}
-\end{figure*}
+
 
 Table~\ref{tab:exp_dataset} details the source composition. Table~\ref{tab:test_dataset_description} visualizes the core metadata distributions. The unified benchmark contains resolutions from standard 640$\times$480 to 1280$\times$720 HD. Clip lengths heavily concentrate between 2:37 and 4:00. This structural diversity forces models to handle extreme hardware variations.
 
@@ -467,7 +473,7 @@ We evaluate the complete two-stage pipeline on all 1149 held-out test clips. The
 
 Fig.~\ref{fig:evaluation_metrics}(b) details the per-class breakdown. Of 574 non-violent test clips, 513 were correctly rejected (TN = 89.4\%) and 61 generated false alarms (FP = 10.6\%). For the 575 violent clips, 535 were correctly detected (TP = 93.0\%) while 40 were missed (FN = 7.0\%). The low false-negative count is partly attributable to the Temporal Transformer modeling short approach--contact--recoil sequences over the 16-frame window, patterns that frame-level or recurrent classifiers miss when the decisive action spans only a few frames. Remaining false positives arise from hard-negative segments---crowd surges, contact sports, and close-range physical greetings---where kinematic signatures temporarily resemble those of genuine violence and Stage~A conservatively forwards the clip to Stage~B.
 
-\begin{figure}[!t]
+\begin{figure}[H]
 \centering
 \includegraphics[width=0.85\columnwidth]{image/roc_curve.png}\\[0.3em]
 {\small (a) ROC curve}\\[0.8em]
@@ -517,10 +523,11 @@ Temporal Transformer + MLP & Per 16-frame clip & 4.8~ms \\
 
 We investigate the contribution of each pipeline component through a controlled ablation, keeping all training settings identical while varying the architecture. Four configurations are evaluated: (1)~\textit{Stage~A Only}---the micro-physical SVM classifier without any deep model; (2)~\textit{Swin Only}---ROI-based Swin Transformer performing per-frame binary classification, without temporal aggregation; (3)~\textit{Stage~B without Stage~A}---the full Swin--Temporal Transformer applied directly to all detected person-group ROIs, bypassing the kinematic filter; and (4)~\textit{Full Pipeline (A+B)}---the complete proposed framework.
 
-\begin{table*}[!htbp]
+\begin{table}[H]
 \centering
 \caption{Ablation study results on the validation set (1149 clips)}
 \label{tab:ablation}
+\resizebox{\columnwidth}{!}{%
 \begin{tabular}{|l|c|c|c|c|}
 \hline
 \textbf{Method} & \textbf{Acc. (\%)} & \textbf{Prec. (\%)} & \textbf{Recall (\%)} & \textbf{F1 (\%)} \\
@@ -530,8 +537,9 @@ Swin Only (Frame-level) & 87.19 & 84.80 & 90.62 & 87.61 \\
 Stage B w/o Stage A & 89.2 & 86.5 & 91.8 & 89.1 \\
 \textbf{Full Pipeline (A+B)} & \textbf{91.8} & \textbf{89.7} & \textbf{93.1} & \textbf{91.4} \\
 \hline
-\end{tabular}
-\end{table*}
+\end{tabular}%
+}
+\end{table}
 
 Stage~A alone achieves 82.4\% recall at 76.1\% precision. The gap is largely expected: momentum and directional entropy capture high-energy interactions well but cannot separate genuine violence from contact sports or aggressive play that share similar physical signatures. The SVM operates in a compact feature space with no spatial or contextual awareness, so it reaches a natural ceiling in visually complex scenes.
 
@@ -605,15 +613,15 @@ The framework achieves 93.1\% recall with precision held at 89.7\%. In security 
 In terms of throughput, Stage~B averages 41.72~ms per clip on the RTX~2080~Ti, roughly 24~FPS, which is competitive with the tested baselines and adequate for real-time deployment. Because Stage~B is bypassed entirely for candidates rejected by Stage~A, actual system throughput over a continuous feed is higher than the isolated Stage~B figure implies.
 
 
-\section{Conclusion and Future Work}
+\section{Conclusion}
 
 This paper proposes a multi-stage violence detection framework for real-time CCTV surveillance systems, addressing limitations of existing methods in handling complex situations such as crowded scenes, small-scale violent interactions, and fast movements that visually resemble aggression. The principal contributions are threefold: (1) a dynamics-based preliminary screening mechanism employing adaptive proximity grouping and a 7-dimensional micro-physical feature descriptor with SVM pre-classification, which efficiently suppresses non-violent candidates before invoking deep inference; (2) an ROI-based Swin Transformer spatial encoder that concentrates representational capacity on high-risk interaction regions, eliminating background interference that degrades full-frame models; and (3) a Temporal Transformer encoder that models behavioral evolution across a 16-frame clip through global self-attention, overcoming the sequential bottleneck and long-range dependency limitations of recurrent architectures. Evaluated on a unified benchmark of 1,149 held-out clips drawn from six heterogeneous sources, the complete pipeline achieves 91.8\% accuracy, 91.4\% F1-score, and 92.04\% AUC-ROC, while sustaining real-time throughput at 24~FPS on a single mid-range GPU.
 
-\section*{Limitations.} 
-Despite these results, the framework operates under several structural constraints that practitioners should consider before deployment. First, the multi-person interaction paradigm underlying Stage~A becomes ineffective in two edge cases: (i) \textit{complete mutual occlusion}, where tracked bounding boxes collapse or merge under dense crowd pressure, preventing reliable centroid estimation and rendering adaptive grouping unreliable; and (ii) \textit{single-person violence}, such as self-harm or weapon-based attacks directed at non-present targets, where no interaction pair is formed and Stage~A produces no candidate group to forward to Stage~B. Second, the SVM gatekeeper in Stage~A is calibrated to maximize recall at the cost of moderate precision, yet it can still miss violent events whose kinematic signature falls below the physics-based thresholds---most notably slow-escalation assaults where peak acceleration remains subdued across the 10-frame sliding window, or restraint scenarios in which the aggressor's movement is deliberately controlled to avoid triggering motion-energy filters. Any sample rejected at this stage is permanently excluded from Stage~B consideration and cannot be recovered by the deep recognizer. Third, and most foundationally, the entire pipeline inherits the detection quality of the YOLOv8 person detector~\cite{jocher_yolov8_2023}. Missed detections in low-illumination environments, heavy rain artifacts, extreme fisheye distortion near frame boundaries, or extreme scale variation between distant and proximate subjects directly reduce the number of valid tracks available for grouping, potentially causing genuine violent interactions to be silently dropped before any feature analysis is performed. Mitigating this dependency through detector ensembling or domain-adaptive fine-tuning on target camera profiles represents a necessary step toward robust operational deployment.
+\vspace{0.15cm}
+\noindent\textbf{Limitations.} Despite these results, the framework operates under several structural constraints that practitioners should consider before deployment. First, the multi-person interaction paradigm underlying Stage~A becomes ineffective in two edge cases: (i) \textit{complete mutual occlusion}, where tracked bounding boxes collapse or merge under dense crowd pressure, preventing reliable centroid estimation and rendering adaptive grouping unreliable; and (ii) \textit{single-person violence}, such as self-harm or weapon-based attacks directed at non-present targets, where no interaction pair is formed and Stage~A produces no candidate group to forward to Stage~B. Second, the SVM gatekeeper in Stage~A is calibrated to maximize recall at the cost of moderate precision, yet it can still miss violent events whose kinematic signature falls below the physics-based thresholds---most notably slow-escalation assaults where peak acceleration remains subdued across the 10-frame sliding window, or restraint scenarios in which the aggressor's movement is deliberately controlled to avoid triggering motion-energy filters. Any sample rejected at this stage is permanently excluded from Stage~B consideration and cannot be recovered by the deep recognizer. Third, and most foundationally, the entire pipeline inherits the detection quality of the YOLOv8 person detector~\cite{jocher_yolov8_2023}. Missed detections in low-illumination environments, heavy rain artifacts, extreme fisheye distortion near frame boundaries, or extreme scale variation between distant and proximate subjects directly reduce the number of valid tracks available for grouping, potentially causing genuine violent interactions to be silently dropped before any feature analysis is performed. Mitigating this dependency through detector ensembling or domain-adaptive fine-tuning on target camera profiles represents a necessary step toward robust operational deployment.
 
-\section*{Future Work.} 
-Three directions are identified for subsequent research. First, the spatial encoder could be upgraded to Swin Transformer V2~\cite{liu_swin_2022} or a lightweight mobile variant to lower per-clip latency and extend applicability to embedded CCTV hardware; simultaneously, incorporating synchronized audio streams through a cross-modal attention mechanism may resolve visually ambiguous cases that neither kinematic nor appearance features can discriminate reliably. Second, the binary classification objective could be extended to a multi-class formulation distinguishing assault, robbery, weapon display, and crowd stampede, coupled with a severity regression head to enable graduated alert escalation and reduce operator fatigue caused by uniform alarm treatment. Third, the dependence on YOLOv8 detection quality motivates investigation of detector-agnostic grouping strategies---for example, keypoint-based proximity estimation that remains robust under partial occlusion---and long-horizon pilot deployments in live environments, including schools and transit hubs, to gather deployment feedback and assess algorithmic bias across demographic groups under realistic operational conditions.
+\vspace{0.15cm}
+\noindent\textbf{Future Work.} Three directions are identified for subsequent research. First, the spatial encoder could be upgraded to Swin Transformer V2~\cite{liu_swin_2022} or a lightweight mobile variant to lower per-clip latency and extend applicability to embedded CCTV hardware; simultaneously, incorporating synchronized audio streams through a cross-modal attention mechanism may resolve visually ambiguous cases that neither kinematic nor appearance features can discriminate reliably. Second, the binary classification objective could be extended to a multi-class formulation distinguishing assault, robbery, weapon display, and crowd stampede, coupled with a severity regression head to enable graduated alert escalation and reduce operator fatigue caused by uniform alarm treatment. Third, the dependence on YOLOv8 detection quality motivates investigation of detector-agnostic grouping strategies---for example, keypoint-based proximity estimation that remains robust under partial occlusion---and long-horizon pilot deployments in live environments, including schools and transit hubs, to gather deployment feedback and assess algorithmic bias across demographic groups under realistic operational conditions.
 
 \bibliographystyle{ieeetr}
 \bibliography{ViolanceDetect}
