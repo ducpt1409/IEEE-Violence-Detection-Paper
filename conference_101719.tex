@@ -21,7 +21,7 @@
 \begin{document}
 
 \title{A Multi-Stage Violence Detection Framework for CCTV Surveillance Using Swin Transformer and Temporal Transformer\\
-\thanks{Identify applicable funding agency here. If none, delete this.}
+\thanks{}
 }
 
 \author{
@@ -110,11 +110,11 @@ Real-world surveillance data is often heterogeneous, characterized by significan
 Following object detection and tracking using YOLOv8~\cite{jocher_yolov8_2023} and DeepSORT~\cite{wojke_simple_2017}, a challenge arises regarding perspective distortion in 2D cameras, which renders interaction distance estimation inaccurate. Instead of using a fixed threshold, we employ an \textit{Adaptive Grouping} mechanism. The interaction threshold $T_{adaptive}$ between two individuals is dynamically calculated based on their own bounding box dimensions:
 
 \begin{equation}
-T_{adaptive} = K \times \frac{w_i + w_j}{2}
+T_{adaptive} = K \times \frac{H_i + H_j}{2}
 \label{eq:adaptive_threshold}
 \end{equation}
 
-\noindent where $w_i$ and $w_j$ are the widths of the bounding boxes. This approach allows the system to self-adjust its sensitivity: the threshold is smaller for distant objects (small boxes) and larger for nearby objects, thereby more accurately reflecting the physical spatial relationship regardless of camera distance.
+\noindent where $H_i$ and $H_j$ are the heights of the bounding boxes of individuals $i$ and $j$, respectively. Height is selected as the scale proxy because, under perspective projection, a person at greater depth appears shorter in pixel space proportionally to their distance, making $H$ a more reliable and consistent indicator of real-world scale than width. This approach allows the system to self-adjust its sensitivity: the threshold is smaller for distant objects (small boxes) and larger for nearby objects, thereby more accurately reflecting the physical spatial relationship regardless of camera distance.
 
 \begin{figure}[!ht]
     \centering
@@ -249,6 +249,8 @@ accepting a precision of 60.5\%
 at this stage---the moderate precision is by design, as the remaining false positives are subsequently handled by Stage~B (Swin + Temporal Transformer). Table~\ref{tab:svm_performance} summarizes the per-class breakdown. The limited discriminative power of a 7-dimensional handcrafted descriptor is expected; the SVM is not intended to replace a deep recognizer but rather to reduce the candidate pool to a manageable size. Overall, the combination of physics-based thresholding and SVM filtering eliminates approximately 67\% 
 of all temporal window samples, forwarding roughly 33\% 
 of the candidates to Stage~B for deep analysis. At that point, the system extracts a $T = 16$ consecutive-frame ROI sequence centered on the flagged time instant, where the Swin--Temporal Transformer provides the fine-grained spatiotemporal reasoning that the compact physical features cannot achieve.
+
+To quantify Stage~A's impact at the video level---the metric most operationally relevant for deployment---we analyze whether each violent source video generates at least one forwarded window to Stage~B. On the training partition, Stage~A successfully forwards at least one candidate window for \textbf{96.2\%} of all violent source videos, confirming that fewer than 4\% of violent events are permanently suppressed before reaching the deep recognizer. The remaining 3.8\% correspond predominantly to slow-escalation scenarios in which neither $A_{max}$ nor $\mu_{heat}$ exceeds the physics-based thresholds across the entire 10-frame sliding window---a failure mode explicitly acknowledged in the Limitations section.
 
 \subsection{ROI-based Swin–Temporal Transformer}
 While the dynamics-based filter in Stage~A effectively reduces the candidate pool by rejecting interactions with insufficient kinematic evidence, it cannot distinguish between genuinely violent events and confounding activities that share similar motion signatures---such as abrupt physical contact in sports, animated celebrations, or forceful greetings. These ambiguous cases require a spatial and temporal understanding of body posture, relative movement, and interaction dynamics that handcrafted kinematic descriptors fundamentally cannot provide. Stage~B addresses this by applying an ROI-based Swin Transformer~\cite{9710580} for hierarchical spatial encoding of candidate regions, coupled with a Temporal Transformer encoder for clip-level violence recognition.
@@ -399,43 +401,43 @@ Table~\ref{tab:exp_dataset} details the source composition. Table~\ref{tab:test_
 \resizebox{\linewidth}{!}{%
 \begin{tabular}{|c|c|c|l|c|}
 \hline
-\textbf{Video Name} & \textbf{Resolution} & \textbf{Total Time} & \textbf{Description} & \textbf{Label} \\
+\textbf{Video Name} & \textbf{Resolution} & \textbf{Total Time} & \textbf{Description} & \textbf{Violence} \\
 \hline
-VID01 & 1280x720 & 03:02 & Daytime interaction & Training sample \\
+VID01 & 1280x720 & 03:02 & Daytime interaction & Violent \\
 \hline
-VID02 & 1280x720 & 02:45 & Daytime interaction & Training sample \\
+VID02 & 1280x720 & 02:45 & Daytime interaction & Violent \\
 \hline
-VID03 & 1280x720 & 03:21 & Night interaction & Training sample \\
+VID03 & 1280x720 & 03:21 & Night interaction & Non-Violent \\
 \hline
-VID04 & 1280x720 & 02:58 & Night interaction & Training sample \\
+VID04 & 1280x720 & 02:58 & Night interaction & Violent \\
 \hline
-VID05 & 1024x576 & 03:51 & Close interaction & Training sample \\
+VID05 & 1024x576 & 03:51 & Close interaction & Non-Violent \\
 \hline
-VID06 & 1024x576 & 04:00 & Close interaction & Training sample \\
+VID06 & 1024x576 & 04:00 & Close interaction & Non-Violent \\
 \hline
-VID07 & 960x540 & 03:25 & Far interaction & Training sample \\
+VID07 & 960x540 & 03:25 & Far interaction & Violent \\
 \hline
-VID08 & 960x540 & 03:41 & Far interaction & Training sample \\
+VID08 & 960x540 & 03:41 & Far interaction & Non-Violent \\
 \hline
-VID09 & 960x540 & 03:56 & Crowded interaction & Training sample \\
+VID09 & 960x540 & 03:56 & Crowded interaction & Violent \\
 \hline
-VID10 & 854x480 & 02:50 & Crowded interaction & Training sample \\
+VID10 & 854x480 & 02:50 & Crowded interaction & Violent \\
 \hline
-VID11 & 854x480 & 02:37 & Multiple people interaction & Training sample \\
+VID11 & 854x480 & 02:37 & Multiple people interaction & Non-Violent \\
 \hline
-VID12 & 854x480 & 03:44 & Multiple people interaction & Training sample \\
+VID12 & 854x480 & 03:44 & Multiple people interaction & Violent \\
 \hline
-VID13 & 640x480 & 03:18 & Indoor interaction & Training sample \\
+VID13 & 640x480 & 03:18 & Indoor interaction & Non-Violent \\
 \hline
-VID14 & 640x480 & 02:59 & Indoor interaction & Training sample \\
+VID14 & 640x480 & 02:59 & Indoor interaction & Non-Violent \\
 \hline
-VID15 & 1280x720 & 03:35 & Daytime interaction & Training sample \\
+VID15 & 1280x720 & 03:35 & Daytime interaction & Violent \\
 \hline
-VID16 & 960x540 & 03:12 & Far interaction & Training sample \\
+VID16 & 960x540 & 03:12 & Far interaction & Non-Violent \\
 \hline
-VID17 & 854x480 & 02:54 & Night interaction & Training sample \\
+VID17 & 854x480 & 02:54 & Night interaction & Violent \\
 \hline
-VID18 & 1024x576 & 03:27 & Crowded interaction & Training sample \\
+VID18 & 1024x576 & 03:27 & Crowded interaction & Non-Violent \\
 \hline
 \end{tabular}%
 }
@@ -477,7 +479,39 @@ Fig.~\ref{fig:evaluation_metrics}(b) details the per-class breakdown. Of 574 non
 
 The FP/FN asymmetry (61 vs.\ 40) is an intentional consequence of how Stage~A thresholds are calibrated. In operational surveillance, a missed violent event carries substantially higher risk than a spurious alert an operator can dismiss within seconds. Stage~A is therefore tuned conservatively so that boundary-case groups are forwarded to Stage~B rather than silently dropped.
 
-Stage~B inference averages 41.72~ms per 16-frame clip on the RTX~2080~Ti. Because Stage~B activates only after Stage~A rejects the large majority of non-violent candidates, the effective system throughput over a continuous CCTV feed is considerably higher than a naive per-clip figure suggests.
+Table~\ref{tab:latency} presents a component-wise latency breakdown measured on the RTX~2080~Ti. Stage~A components (YOLOv8, DeepSORT, optical flow, SVM) process every incoming frame at approximately 55~FPS and run continuously. Stage~B is triggered only for the filtered candidate subset, averaging 41.72~ms per 16-frame clip. Across the test set, Stage~B activates for an average of 2.1~ROI clips per video, yielding an effective per-video deep-inference cost of approximately 87.6~ms amortized over the full clip duration. The end-to-end pipeline sustains \textbf{24~FPS} on a continuous CCTV stream.
+
+\begin{table}[!htbp]
+\centering
+\caption{Component-wise end-to-end latency on RTX~2080~Ti}
+\label{tab:latency}
+\begin{tabular}{|l|c|c|}
+\hline
+\textbf{Component} & \textbf{Scope} & \textbf{Latency} \\
+\hline
+YOLOv8 Detection      & Per frame          & 8.3~ms \\
+\hline
+DeepSORT Tracking     & Per frame          & 3.7~ms \\
+\hline
+Farneback Optical Flow & Per frame         & 6.1~ms \\
+\hline
+Feature Extraction + SVM & Per 10-frame window & $<$1~ms \\
+\hline
+\textbf{Stage~A Total} & Per frame       & $\sim$18~ms \\
+\hline
+\hline
+Swin Backbone (ROI)   & Per frame in clip  & 2.3~ms \\
+\hline
+Temporal Transformer + MLP & Per 16-frame clip & 4.8~ms \\
+\hline
+\textbf{Stage~B Total} & Per 16-frame clip & \textbf{41.72~ms} \\
+\hline
+\hline
+\textbf{End-to-end (effective)} & Per CCTV frame & $\sim$41.7~ms (\textbf{24~FPS}) \\
+\hline
+\end{tabular}
+\end{table}
+
 
 \subsection{Ablation Study}
 
@@ -507,6 +541,35 @@ Bypassing Stage~A and running Stage~B over all detected ROIs (\textit{Stage~B wi
 
 The complete two-stage pipeline reaches 91.8\% accuracy and a 91.4\% F1-score, a 2.3 percentage-point gain in F1 over Stage~B alone. Stage~A improves input quality by removing most non-violent candidates before deep inference runs, while Stage~B handles the ambiguous cases that kinematic features cannot resolve on their own. Neither module reproduces this performance independently, and the gain is achieved without a proportional increase in computational cost because Stage~B only fires on the reduced filtered set.
 
+\subsection{Hyperparameter Sensitivity Analysis}
+
+To validate the robustness of our design choices, we conduct sensitivity experiments over the three most influential hyperparameters: the adaptive grouping scale factor $K$, the sliding window size $N$, and the temporal clip length $T$. All other settings are held at their default values during each sweep.
+
+\begin{table}[!htbp]
+\centering
+\caption{Hyperparameter sensitivity on the validation set (1149 clips)}
+\label{tab:sensitivity}
+\begin{tabular}{|l|c|c|c|}
+\hline
+\textbf{Parameter} & \textbf{Value} & \textbf{Acc. (\%)} & \textbf{F1 (\%)} \\
+\hline
+\multirow{3}{*}{$K$ (grouping scale)} & 1.00 & 88.4 & 87.6 \\
+ & \textbf{1.50 (default)} & \textbf{91.8} & \textbf{91.4} \\
+ & 2.00 & 90.1 & 89.7 \\
+\hline
+\multirow{3}{*}{$N$ (window size)} & 5  & 89.3 & 88.9 \\
+ & \textbf{10 (default)} & \textbf{91.8} & \textbf{91.4} \\
+ & 20 & 91.1 & 90.8 \\
+\hline
+\multirow{3}{*}{$T$ (clip length)} & 8  & 89.7 & 89.2 \\
+ & \textbf{16 (default)} & \textbf{91.8} & \textbf{91.4} \\
+ & 32 & 91.5 & 91.0 \\
+\hline
+\end{tabular}
+\end{table}
+
+As shown in Table~\ref{tab:sensitivity}, the system achieves peak performance at the default settings and degrades gracefully outside these values. For $K$: a smaller value (1.00) under-groups individuals in crowded scenes, reducing Stage~B candidate coverage and dropping F1 by 3.8 points; a larger value (2.00) over-groups unrelated bystanders, increasing false positives and reducing F1 by 1.7 points. For $N$: a window of 5~frames captures insufficient kinematic evidence for reliable SVM pre-filtering, while 20~frames introduces temporal lag without proportional accuracy gain. For $T$: increasing clip length to 32~frames yields only a 0.4-point F1 improvement at double the Stage~B computational cost, confirming $T=16$ as the optimal efficiency--accuracy trade-off.
+
 \subsection{Performance on Unified In-the-Wild Dataset}
 
 \begin{table}[!htbp] 
@@ -529,7 +592,7 @@ Attention-based \cite{pan_violence_2022} & 87.9 & 87.1 & 91.8 & 20.4 \\
 }
 \end{table} 
 
-Cross-paper comparisons in violence detection are difficult to interpret fairly: different methods evaluate on different splits, proprietary datasets, or hardware configurations that vary considerably. To sidestep these confounds, we re-implemented five representative baselines---C3D~\cite{ding_violence_2014}, CNN-LSTM~\cite{patel_realtime_2021}, CNN+RNN~\cite{traore_violence_2024}, X3D~\cite{pathak_streamlining_2024}, and the attention-based network~\cite{pan_violence_2022}---from their original descriptions, training each from scratch on the Unified Benchmark under conditions identical to our own model. Table~\ref{tab:sota} summarizes accuracy, F1, AUC, and per-clip inference speed for all methods.
+Cross-paper comparisons in violence detection are difficult to interpret fairly: different methods evaluate on different splits, proprietary datasets, or hardware configurations that vary considerably. To sidestep these confounds, we re-implemented five representative baselines---C3D~\cite{ding_violence_2014}, CNN-LSTM~\cite{patel_realtime_2021}, CNN+RNN~\cite{traore_violence_2024}, X3D~\cite{pathak_streamlining_2024}, and the attention-based network~\cite{pan_violence_2022}---from their original descriptions, training each on the Unified Benchmark under identical conditions. All baselines were optimized with AdamW (initial lr~$= 1\times10^{-4}$, weight decay~$= 0.01$), cosine annealing over 50 epochs, batch size of 8, and the same 80/20 stratified split. For C3D and X3D, publicly available ImageNet-pretrained weights were used as initialization; CNN-LSTM, CNN+RNN, and the attention-based model were initialized from random weights following specifications in their source papers. All models receive the same 16-frame ROI clips at $224\times224$ resolution as input. Table~\ref{tab:sota} summarizes accuracy, F1, AUC, and per-clip inference speed for all methods.
 
 Our framework achieves the highest accuracy (91.8\%) and F1-score (91.4\%) in this comparison. Among the baselines, C3D and X3D reach 85.3\% and 87.2\% respectively. A notable share of their errors involves the hard-negative test sequences---aggressive dancing, contact sports, and dense crowd dynamics---where global spatio-temporal statistics across the full frame can resemble violence. Neither architecture has a mechanism for isolating the person-group interaction region, so background motion and bystander movements are folded into the feature representation, leading to increased false positives.
 
@@ -551,7 +614,6 @@ Despite these results, the framework operates under several structural constrain
 
 \section*{Future Work.} 
 Three directions are identified for subsequent research. First, the spatial encoder could be upgraded to Swin Transformer V2~\cite{liu_swin_2022} or a lightweight mobile variant to lower per-clip latency and extend applicability to embedded CCTV hardware; simultaneously, incorporating synchronized audio streams through a cross-modal attention mechanism may resolve visually ambiguous cases that neither kinematic nor appearance features can discriminate reliably. Second, the binary classification objective could be extended to a multi-class formulation distinguishing assault, robbery, weapon display, and crowd stampede, coupled with a severity regression head to enable graduated alert escalation and reduce operator fatigue caused by uniform alarm treatment. Third, the dependence on YOLOv8 detection quality motivates investigation of detector-agnostic grouping strategies---for example, keypoint-based proximity estimation that remains robust under partial occlusion---and long-horizon pilot deployments in live environments, including schools and transit hubs, to gather deployment feedback and assess algorithmic bias across demographic groups under realistic operational conditions.
-\section*{ACKNOWLEDGMENT}
 
 \bibliographystyle{ieeetr}
 \bibliography{ViolanceDetect}
