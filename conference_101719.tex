@@ -1,6 +1,10 @@
 \documentclass[conference]{IEEEtran}
 \IEEEoverridecommandlockouts
-% The preceding line is only needed to identify funding in the first footnote. If that is unneeded, please comment it out.
+
+\usepackage[utf8]{inputenc}
+\usepackage[T5]{fontenc}
+\usepackage[english]{babel}
+
 \usepackage{cite}
 \usepackage{amsmath,amssymb,amsfonts}
 \usepackage{algorithmic}
@@ -10,51 +14,25 @@
 \usepackage{subcaption}
 \usepackage{float}
 \usepackage[numbers]{natbib}
+
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 
 \begin{document}
 
 \title{A Multi-Stage Violence Detection Framework for CCTV Surveillance Using Swin Transformer and Temporal Transformer\\
-
 \thanks{Identify applicable funding agency here. If none, delete this.}
 }
 
-\author{\IEEEauthorblockN{1\textsuperscript{st} Given Name Surname}
-\IEEEauthorblockA{\textit{dept. name of organization (of Aff.)} \\
-\textit{name of organization (of Aff.)}\\
-City, Country \\
-email address or ORCID}
-\and
-\IEEEauthorblockN{2\textsuperscript{nd} Given Name Surname}
-\IEEEauthorblockA{\textit{dept. name of organization (of Aff.)} \\
-\textit{name of organization (of Aff.)}\\
-City, Country \\
-email address or ORCID}
-\and
-\IEEEauthorblockN{3\textsuperscript{rd} Given Name Surname}
-\IEEEauthorblockA{\textit{dept. name of organization (of Aff.)} \\
-\textit{name of organization (of Aff.)}\\
-City, Country \\
-email address or ORCID}
-% \and
-% \IEEEauthorblockN{4\textsuperscript{th} Given Name Surname}
-% \IEEEauthorblockA{\textit{dept. name of organization (of Aff.)} \\
-% \textit{name of organization (of Aff.)}\\
-% City, Country \\
-% email address or ORCID}
-% \and
-% \IEEEauthorblockN{5\textsuperscript{th} Given Name Surname}
-% \IEEEauthorblockA{\textit{dept. name of organization (of Aff.)} \\
-% \textit{name of organization (of Aff.)}\\
-% City, Country \\
-% email address or ORCID}
-% \and
-% \IEEEauthorblockN{6\textsuperscript{th} Given Name Surname}
-% \IEEEauthorblockA{\textit{dept. name of organization (of Aff.)} \\
-% \textit{name of organization (of Aff.)}\\
-% City, Country \\
-% email address or ORCID}
+\author{
+    \textbf{1. Hà Như Thái}, \textbf{2. Phạm Tiến Đức}, \textbf{3. Nguyễn Minh Đức}, \textbf{4. Lê Hữu Chính}\\
+    \vspace{0.2cm}
+    \textit{Posts and Telecommunications Institute of Technology}\\
+    Hanoi, Vietnam\\
+    \vspace{0.2cm}
+    \small
+    nhuthai1510@gmail.com, ducpt@ptit.edu.vn, \\
+    DucNM.B23DCC042@stu.ptit.edu.vn, ChinhLH.B23CC021@stu.ptit.edu.vn
 }
 
 \maketitle
@@ -96,8 +74,6 @@ To capture temporal dynamics, a large body of subsequent work combined CNN spati
 A parallel line of research has investigated skeleton- and pose-based representations as a complement to appearance features. By estimating body keypoints with tools such as OpenPose~\cite{cao_openpose_2019} and subsequently encoding the resulting joint graphs with spatial temporal graph convolutional networks (ST-GCN)~\cite{yan_stgcn_2018}, these methods achieve a degree of viewpoint and background invariance not attainable from raw pixel inputs. Graph neural network (GNN) variants applied to interaction-level violence detection~\cite{yun_missiongnn_2024} have reported competitive accuracy on controlled benchmarks. However, skeleton-based pipelines exhibit a critical dependency on reliable pose estimation: partial occlusion, low image resolution, or large inter-person distances---all common in real-world CCTV footage---frequently produce incomplete or erroneous skeleton sequences that degrade downstream classification. Furthermore, GNN architectures require explicit construction of a person-interaction graph, making them sensitive to tracking failures and computationally intensive when the number of persons in the scene varies dynamically.
 
 To mitigate these limitations, recent work has explored multi-stage detection pipelines that interleave candidate region extraction, motion-based screening, and deep classification~\cite{yun_missiongnn_2024, nguyen_multistage_2021}. By discarding irrelevant background regions prior to deep inference, these cascaded architectures reduce computational overhead and suppress false alarms triggered by bystander motion. Entropy-based filtering is frequently employed as an intermediate screening step to reject non-violent activities that share superficial kinematic similarities with genuine violence.
-
-Our prior work [CITE-OWN-PAPER] explored a multi-stage framework that couples YOLO-based candidate detection with entropy-driven motion filtering and a CNN--BiLSTM classifier operating on cropped ROI sequences. That system achieved approximately 87\% accuracy on a combined benchmark; however, the CNN backbone imposed a fixed receptive field and lacked the capacity to model contextual relationships between interacting individuals, while the BiLSTM encoder struggled to capture long-range temporal dependencies beyond clips of roughly 30 frames. These structural constraints led to residual confusion between high-energy non-violent interactions---such as contact sports and animated group activities---and genuine violence, manifesting as a persistent false-positive rate that limited practical deployment.
 
 More recently, Transformer-based architectures have emerged as a compelling alternative to convolutional and recurrent designs for video understanding~\cite{vaswani_attention_2023, dosovitskiy_image_2021, bertasius_is_2021, arnab_vivit_2021, pan_violence_2022}. Self-attention mechanisms enable Transformers to establish direct pairwise dependencies between any two temporal positions in a sequence, bypassing the sequential computation constraints of RNNs and the locality constraints of CNNs. Violence-specific attention-based models~\cite{pan_violence_2022} have demonstrated measurable gains over CNN--LSTM baselines. Nonetheless, vanilla video Transformers process full-resolution frames and thus incur quadratic complexity in the number of spatial tokens, making real-time inference on resource-constrained CCTV hardware impractical.
 
@@ -570,9 +546,11 @@ In terms of throughput, Stage~B averages 41.72~ms per clip on the RTX~2080~Ti, r
 
 This paper proposes a multi-stage violence detection framework for real-time CCTV surveillance systems, addressing limitations of existing methods in handling complex situations such as crowded scenes, small-scale violent interactions, and fast movements that visually resemble aggression. The principal contributions are threefold: (1) a dynamics-based preliminary screening mechanism employing adaptive proximity grouping and a 7-dimensional micro-physical feature descriptor with SVM pre-classification, which efficiently suppresses non-violent candidates before invoking deep inference; (2) an ROI-based Swin Transformer spatial encoder that concentrates representational capacity on high-risk interaction regions, eliminating background interference that degrades full-frame models; and (3) a Temporal Transformer encoder that models behavioral evolution across a 16-frame clip through global self-attention, overcoming the sequential bottleneck and long-range dependency limitations of recurrent architectures. Evaluated on a unified benchmark of 1,149 held-out clips drawn from six heterogeneous sources, the complete pipeline achieves 91.8\% accuracy, 91.4\% F1-score, and 92.04\% AUC-ROC, while sustaining real-time throughput at 24~FPS on a single mid-range GPU.
 
-\noindent\textbf{Limitations.} Despite these results, the framework operates under several structural constraints that practitioners should consider before deployment. First, the multi-person interaction paradigm underlying Stage~A becomes ineffective in two edge cases: (i) \textit{complete mutual occlusion}, where tracked bounding boxes collapse or merge under dense crowd pressure, preventing reliable centroid estimation and rendering adaptive grouping unreliable; and (ii) \textit{single-person violence}, such as self-harm or weapon-based attacks directed at non-present targets, where no interaction pair is formed and Stage~A produces no candidate group to forward to Stage~B. Second, the SVM gatekeeper in Stage~A is calibrated to maximize recall at the cost of moderate precision, yet it can still miss violent events whose kinematic signature falls below the physics-based thresholds---most notably slow-escalation assaults where peak acceleration remains subdued across the 10-frame sliding window, or restraint scenarios in which the aggressor's movement is deliberately controlled to avoid triggering motion-energy filters. Any sample rejected at this stage is permanently excluded from Stage~B consideration and cannot be recovered by the deep recognizer. Third, and most foundationally, the entire pipeline inherits the detection quality of the YOLOv8 person detector~\cite{jocher_yolov8_2023}. Missed detections in low-illumination environments, heavy rain artifacts, extreme fisheye distortion near frame boundaries, or extreme scale variation between distant and proximate subjects directly reduce the number of valid tracks available for grouping, potentially causing genuine violent interactions to be silently dropped before any feature analysis is performed. Mitigating this dependency through detector ensembling or domain-adaptive fine-tuning on target camera profiles represents a necessary step toward robust operational deployment.
+\section*{Limitations.} 
+Despite these results, the framework operates under several structural constraints that practitioners should consider before deployment. First, the multi-person interaction paradigm underlying Stage~A becomes ineffective in two edge cases: (i) \textit{complete mutual occlusion}, where tracked bounding boxes collapse or merge under dense crowd pressure, preventing reliable centroid estimation and rendering adaptive grouping unreliable; and (ii) \textit{single-person violence}, such as self-harm or weapon-based attacks directed at non-present targets, where no interaction pair is formed and Stage~A produces no candidate group to forward to Stage~B. Second, the SVM gatekeeper in Stage~A is calibrated to maximize recall at the cost of moderate precision, yet it can still miss violent events whose kinematic signature falls below the physics-based thresholds---most notably slow-escalation assaults where peak acceleration remains subdued across the 10-frame sliding window, or restraint scenarios in which the aggressor's movement is deliberately controlled to avoid triggering motion-energy filters. Any sample rejected at this stage is permanently excluded from Stage~B consideration and cannot be recovered by the deep recognizer. Third, and most foundationally, the entire pipeline inherits the detection quality of the YOLOv8 person detector~\cite{jocher_yolov8_2023}. Missed detections in low-illumination environments, heavy rain artifacts, extreme fisheye distortion near frame boundaries, or extreme scale variation between distant and proximate subjects directly reduce the number of valid tracks available for grouping, potentially causing genuine violent interactions to be silently dropped before any feature analysis is performed. Mitigating this dependency through detector ensembling or domain-adaptive fine-tuning on target camera profiles represents a necessary step toward robust operational deployment.
 
-\noindent\textbf{Future Work.} Three directions are identified for subsequent research. First, the spatial encoder could be upgraded to Swin Transformer V2~\cite{liu_swin_2022} or a lightweight mobile variant to lower per-clip latency and extend applicability to embedded CCTV hardware; simultaneously, incorporating synchronized audio streams through a cross-modal attention mechanism may resolve visually ambiguous cases that neither kinematic nor appearance features can discriminate reliably. Second, the binary classification objective could be extended to a multi-class formulation distinguishing assault, robbery, weapon display, and crowd stampede, coupled with a severity regression head to enable graduated alert escalation and reduce operator fatigue caused by uniform alarm treatment. Third, the dependence on YOLOv8 detection quality motivates investigation of detector-agnostic grouping strategies---for example, keypoint-based proximity estimation that remains robust under partial occlusion---and long-horizon pilot deployments in live environments, including schools and transit hubs, to gather deployment feedback and assess algorithmic bias across demographic groups under realistic operational conditions.
+\section*{Future Work.} 
+Three directions are identified for subsequent research. First, the spatial encoder could be upgraded to Swin Transformer V2~\cite{liu_swin_2022} or a lightweight mobile variant to lower per-clip latency and extend applicability to embedded CCTV hardware; simultaneously, incorporating synchronized audio streams through a cross-modal attention mechanism may resolve visually ambiguous cases that neither kinematic nor appearance features can discriminate reliably. Second, the binary classification objective could be extended to a multi-class formulation distinguishing assault, robbery, weapon display, and crowd stampede, coupled with a severity regression head to enable graduated alert escalation and reduce operator fatigue caused by uniform alarm treatment. Third, the dependence on YOLOv8 detection quality motivates investigation of detector-agnostic grouping strategies---for example, keypoint-based proximity estimation that remains robust under partial occlusion---and long-horizon pilot deployments in live environments, including schools and transit hubs, to gather deployment feedback and assess algorithmic bias across demographic groups under realistic operational conditions.
 \section*{ACKNOWLEDGMENT}
 
 \bibliographystyle{ieeetr}
