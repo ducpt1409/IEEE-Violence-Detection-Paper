@@ -357,10 +357,10 @@ The cascade design has two practical benefits that build on each other. Because 
 \begin{figure*}[!t]
 \centering
 \includegraphics[width=0.9\linewidth]{image/violance.png}\\[0.3em]
-{\small (a) True Positives: Violent interactions under varying conditions.}\\[0.8em]
+{\small (a) A localized violent interaction in daylight.}\\[0.8em]
 \includegraphics[width=0.9\linewidth]{image/violance_night.jpg}\\[0.3em]
-{\small (b) Hard Negatives: Non-violent sequences including hugging, dancing, and fast-moving objects.}
-\caption{Sample frames from the Unified Benchmark showcasing both true positive violent events and challenging hard negative scenarios.}
+{\small (b) A similar violent interaction occurring under low-light nighttime conditions.}
+\caption{Sample 16-frame sequences from the PTIT Violence Detection Dataset. (a) A localized violent interaction in daylight. (b) A similar violent interaction occurring under low-light nighttime conditions, demonstrating the robustness of the tracking stage.}
 \label{fig:unified_samples}
 \end{figure*}
 
@@ -429,7 +429,7 @@ VID18 & 1024$\times$576 & 03:27 & Crowded scene & Non-Violent \\
 }
 \end{table}
 
-Figure~\ref{fig:unified_samples} displays raw frames extracted from the test partition. Environmental conditions shift drastically. The top row depicts actual violence, including large-scale brawls occupying the entire field of view alongside localized interactions occurring at greater distances from the camera. The bottom row demonstrates the hard negatives, including hugging, dancing, incidental collisions, and fast-moving objects. These specific samples are selected to directly evaluate the false positive rate of the pipeline.
+Figure~\ref{fig:unified_samples} displays raw 16-frame sequences extracted from the PTIT Violence Detection Dataset test partition. The figure highlights how the system processes localized violent interactions across drastically different environmental conditions. The top sequence depicts an altercation during daylight, while the bottom sequence shows a similar altercation occurring under low-light nighttime conditions. These specific samples demonstrate the robustness of the kinematic tracking stage and the deep spatial-temporal feature extraction, which successfully maintain detection accuracy even when lighting and visibility degrade.
 
 \subsection{Implementation Details}
 We ran every experiment on a single workstation: an NVIDIA RTX 2080~Ti (11~GB) paired with an Intel Core i9-10900K and 32~GB of system RAM, on Windows~11 Pro 64-bit. This is roughly the price/performance band a small-to-medium CCTV deployment can afford, so the latency numbers we report should be representative of what an actual operator would see.
