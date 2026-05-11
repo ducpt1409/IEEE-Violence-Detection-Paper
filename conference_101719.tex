@@ -18,12 +18,12 @@
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 
-\renewcommand{\topfraction}{0.95}
-\renewcommand{\bottomfraction}{0.95}
-\renewcommand{\dbltopfraction}{0.95}
-\renewcommand{\textfraction}{0.05}
-\renewcommand{\floatpagefraction}{0.95}
-\renewcommand{\dblfloatpagefraction}{0.95}
+\renewcommand{\topfraction}{0.85}
+\renewcommand{\bottomfraction}{0.85}
+\renewcommand{\dbltopfraction}{0.85}
+\renewcommand{\textfraction}{0.15}
+\renewcommand{\floatpagefraction}{0.75}
+\renewcommand{\dblfloatpagefraction}{0.75}
 
 \begin{document}
 
@@ -356,9 +356,9 @@ The cascade design has two practical benefits that build on each other. Because 
 
 \begin{figure*}[!t]
 \centering
-\includegraphics[width=0.9\linewidth]{image/violance.png}\\[0.3em]
+\includegraphics[width=0.9\linewidth, height=0.35\textheight, keepaspectratio]{image/violance.png}\\[0.3em]
 {\small (a) A localized violent interaction in daylight.}\\[0.8em]
-\includegraphics[width=0.9\linewidth]{image/violance_night.jpg}\\[0.3em]
+\includegraphics[width=0.9\linewidth, height=0.35\textheight, keepaspectratio]{image/violance_night.jpg}\\[0.3em]
 {\small (b) A similar violent interaction occurring under low-light nighttime conditions.}
 \caption{Sample 16-frame sequences from the PTIT Violence Detection Dataset. (a) A localized violent interaction in daylight. (b) A similar violent interaction occurring under low-light nighttime conditions, demonstrating the robustness of the tracking stage.}
 \label{fig:unified_samples}
@@ -370,7 +370,14 @@ The cascade design has two practical benefits that build on each other. Because 
 
 We built this framework with real CCTV footage in mind, not the cleaner clips that most public benchmarks ship with. Real cameras deal with awkward angles, mixed lighting, and crowd dynamics that no curated dataset captures on its own, so we pulled raw data from six different sources to keep the test conditions honest.
 
-The combined pool has 5,746 clips, split evenly between violent and non-violent classes. We did an 80/20 stratified split at the clip level and trained on 4,597 of them. The held-out 20\% from each source were merged into a single test set we refer to as the Unified Violence Surveillance Benchmark, which contains 1,149 clips.
+The combined pool has 5,746 clips, split evenly between violent and non-violent classes. We did an 80/20 stratified split at the clip level and trained on 4,597 of them. The held-out 20\% from each source were merged into a single test set we refer to as the Unified Violence Surveillance Benchmark, which contains 1,149 clips. As illustrated in Fig.~\ref{fig:example_dataset}, these samples cover diverse real-world scenarios, including various lighting conditions, camera angles, and crowd densities.
+
+\begin{figure*}[!t]
+    \centering
+    \includegraphics[width=\linewidth, height=0.8\textheight, keepaspectratio]{image/example_dataset.png}
+    \caption{Representative frame samples from the Unified Violence Surveillance Benchmark. The dataset aggregates footage from six sources to capture real-world surveillance challenges, including diverse camera angles, lighting conditions, and complex crowd dynamics.}
+    \label{fig:example_dataset}
+\end{figure*}
 
 \begin{table}[!htbp]
 \centering
