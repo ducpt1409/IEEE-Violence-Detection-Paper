@@ -1,0 +1,146 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 1080" font-family="Arial, Helvetica, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto" markerUnits="strokeWidth">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#555"/>
+    </marker>
+    <marker id="arrow-red" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto" markerUnits="strokeWidth">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#c0392b"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="680" height="1080" fill="white"/>
+
+  <!-- ==================== ROW 1: Video Input ==================== -->
+  <rect x="210" y="20" width="260" height="50" rx="8" fill="#ecf0f1" stroke="#7f8c8d" stroke-width="1.5"/>
+  <text x="340" y="40" text-anchor="middle" font-size="14" font-weight="bold" fill="#2c3e50">Video Input</text>
+  <text x="340" y="57" text-anchor="middle" font-size="11" fill="#7f8c8d">(4K / HD / 30–60 FPS)</text>
+
+  <!-- Arrow 1→2 -->
+  <line x1="340" y1="70" x2="340" y2="95" stroke="#555" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- ==================== ROW 2: Preprocessing ==================== -->
+  <rect x="105" y="98" width="470" height="95" rx="6" fill="#eaf2f8" stroke="#2980b9" stroke-width="1.5"/>
+  <text x="340" y="116" text-anchor="middle" font-size="14" font-weight="bold" fill="#2980b9">1. Preprocessing</text>
+
+  <!-- Spatial sub-box -->
+  <rect x="120" y="125" width="220" height="55" rx="4" fill="white" stroke="#aaa" stroke-width="1"/>
+  <text x="230" y="143" text-anchor="middle" font-size="12" font-weight="bold" fill="#333">Spatial Normalization</text>
+  <text x="230" y="159" text-anchor="middle" font-size="11" fill="#555">• Resize to W = 640 px</text>
+  <text x="230" y="174" text-anchor="middle" font-size="11" fill="#555">• Aspect ratio preserved</text>
+
+  <!-- Temporal sub-box -->
+  <rect x="355" y="125" width="205" height="55" rx="4" fill="white" stroke="#aaa" stroke-width="1"/>
+  <text x="458" y="143" text-anchor="middle" font-size="12" font-weight="bold" fill="#333">Temporal Normalization</text>
+  <text x="458" y="159" text-anchor="middle" font-size="11" fill="#555">• FPS scaling</text>
+  <text x="458" y="174" text-anchor="middle" font-size="11" fill="#555">• Resolution correction</text>
+
+  <!-- Arrow 2→3 -->
+  <line x1="340" y1="193" x2="340" y2="218" stroke="#555" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- ==================== ROW 3: Detection & Tracking ==================== -->
+  <rect x="105" y="221" width="470" height="110" rx="6" fill="#fef9e7" stroke="#f39c12" stroke-width="1.5"/>
+  <text x="340" y="239" text-anchor="middle" font-size="14" font-weight="bold" fill="#e67e22">2. Detection &amp; Tracking</text>
+
+  <!-- YOLOv8 sub-box -->
+  <rect x="120" y="248" width="220" height="70" rx="4" fill="white" stroke="#aaa" stroke-width="1"/>
+  <text x="230" y="266" text-anchor="middle" font-size="12" font-weight="bold" fill="#333">YOLOv8 Detection</text>
+  <text x="230" y="282" text-anchor="middle" font-size="11" fill="#555">• Person detection</text>
+  <text x="230" y="296" text-anchor="middle" font-size="11" fill="#555">• Bounding Boxes</text>
+  <text x="230" y="310" text-anchor="middle" font-size="11" fill="#555">• Confidence scoring</text>
+
+  <!-- DeepSORT sub-box -->
+  <rect x="355" y="248" width="205" height="70" rx="4" fill="white" stroke="#aaa" stroke-width="1"/>
+  <text x="458" y="266" text-anchor="middle" font-size="12" font-weight="bold" fill="#333">DeepSORT Tracking</text>
+  <text x="458" y="282" text-anchor="middle" font-size="11" fill="#555">• ID Assignment</text>
+  <text x="458" y="296" text-anchor="middle" font-size="11" fill="#555">• Kalman Filter</text>
+  <text x="458" y="310" text-anchor="middle" font-size="11" fill="#555">• Hungarian Algorithm</text>
+
+  <!-- Arrow 3→4 -->
+  <line x1="340" y1="331" x2="340" y2="356" stroke="#555" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- ==================== ROW 4: Adaptive Grouping ==================== -->
+  <rect x="130" y="359" width="420" height="85" rx="6" fill="#f5eef8" stroke="#8e44ad" stroke-width="1.5"/>
+  <text x="340" y="378" text-anchor="middle" font-size="14" font-weight="bold" fill="#8e44ad">3. Adaptive Grouping</text>
+  <text x="340" y="398" text-anchor="middle" font-size="12" fill="#333">• Compute bounding box centers (Cx, Cy)</text>
+  <text x="340" y="414" text-anchor="middle" font-size="12" fill="#333">• Pairwise Euclidean distance D</text>
+  <text x="340" y="430" text-anchor="middle" font-size="12" fill="#333">• T_adaptive = K × (H_i + H_j) / 2</text>
+
+  <!-- Arrow 4→5 -->
+  <line x1="340" y1="444" x2="340" y2="469" stroke="#555" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- ==================== ROW 5: Feature Extraction ==================== -->
+  <rect x="105" y="472" width="470" height="170" rx="6" fill="#e8f8f5" stroke="#1abc9c" stroke-width="1.5"/>
+  <text x="340" y="492" text-anchor="middle" font-size="14" font-weight="bold" fill="#16a085">4. Feature Extraction (Sliding Window N=10)</text>
+
+  <!-- Physical sub-box -->
+  <rect x="120" y="502" width="220" height="95" rx="4" fill="white" stroke="#aaa" stroke-width="1"/>
+  <text x="230" y="520" text-anchor="middle" font-size="12" font-weight="bold" fill="#333">Physical Features</text>
+  <text x="230" y="537" text-anchor="middle" font-size="11" fill="#555">• μ_v , σ_v (velocity)</text>
+  <text x="230" y="552" text-anchor="middle" font-size="11" fill="#555">• μ_a , A_max (acceleration)</text>
+  <text x="230" y="567" text-anchor="middle" font-size="11" fill="#555">• S_interaction (entropy)</text>
+  <text x="230" y="584" text-anchor="middle" font-size="11" fill="#555">→ 5D kinematic descriptor</text>
+
+  <!-- Heatmap sub-box -->
+  <rect x="355" y="502" width="205" height="95" rx="4" fill="white" stroke="#aaa" stroke-width="1"/>
+  <text x="458" y="520" text-anchor="middle" font-size="12" font-weight="bold" fill="#333">Heatmap Features</text>
+  <text x="458" y="537" text-anchor="middle" font-size="11" fill="#555">• Dense Optical Flow</text>
+  <text x="458" y="552" text-anchor="middle" font-size="11" fill="#555">  (Farnebäck)</text>
+  <text x="458" y="567" text-anchor="middle" font-size="11" fill="#555">• μ_heat , σ_heat</text>
+  <text x="458" y="584" text-anchor="middle" font-size="11" fill="#555">→ Heatmap Matrix</text>
+
+  <!-- V_raw label — INSIDE the Feature Extraction box -->
+  <rect x="145" y="607" width="390" height="26" rx="4" fill="#d5f5e3" stroke="#27ae60" stroke-width="1"/>
+  <text x="340" y="625" text-anchor="middle" font-size="12" font-weight="bold" fill="#1e8449">V_raw = [μ_v, σ_v, μ_a, A_max, S_int, μ_heat, σ_heat]</text>
+
+  <!-- Arrow 5→6 -->
+  <line x1="340" y1="642" x2="340" y2="667" stroke="#555" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- ==================== ROW 6: Data Filtering ==================== -->
+  <rect x="105" y="670" width="470" height="130" rx="6" fill="#fdedec" stroke="#e74c3c" stroke-width="1.5"/>
+  <text x="340" y="690" text-anchor="middle" font-size="14" font-weight="bold" fill="#c0392b">5. Two-tier Data Filtering</text>
+
+  <!-- Physics filter -->
+  <rect x="120" y="700" width="330" height="40" rx="4" fill="white" stroke="#aaa" stroke-width="1"/>
+  <text x="285" y="715" text-anchor="middle" font-size="12" font-weight="bold" fill="#333">Tier 1: Physics-based Threshold</text>
+  <text x="285" y="732" text-anchor="middle" font-size="11" fill="#555">Retain if: A_max &gt; 15.0  OR  μ_heat &gt; 2.0</text>
+
+  <!-- Discard label tier 1 -->
+  <rect x="465" y="700" width="95" height="40" rx="4" fill="#fadbd8" stroke="#e74c3c" stroke-width="1"/>
+  <text x="513" y="716" text-anchor="middle" font-size="11" font-weight="bold" fill="#c0392b">Discard</text>
+  <text x="513" y="732" text-anchor="middle" font-size="10" fill="#c0392b">≈ 60%</text>
+
+  <!-- Arrow from physics filter to discard -->
+  <line x1="450" y1="720" x2="463" y2="720" stroke="#c0392b" stroke-width="1.2" marker-end="url(#arrow-red)"/>
+
+  <!-- SVM filter -->
+  <rect x="120" y="750" width="330" height="40" rx="4" fill="white" stroke="#aaa" stroke-width="1"/>
+  <text x="285" y="765" text-anchor="middle" font-size="12" font-weight="bold" fill="#333">Tier 2: SVM Pre-classifier (RBF)</text>
+  <text x="285" y="782" text-anchor="middle" font-size="11" fill="#555">StandardScaler → SVM (C=10, γ=scale)</text>
+
+  <!-- Discard SVM label -->
+  <rect x="465" y="750" width="95" height="40" rx="4" fill="#fadbd8" stroke="#e74c3c" stroke-width="1"/>
+  <text x="513" y="766" text-anchor="middle" font-size="11" font-weight="bold" fill="#c0392b">Discard</text>
+  <text x="513" y="782" text-anchor="middle" font-size="10" fill="#c0392b">≈ 7%</text>
+
+  <!-- Arrow from SVM to discard -->
+  <line x1="450" y1="770" x2="463" y2="770" stroke="#c0392b" stroke-width="1.2" marker-end="url(#arrow-red)"/>
+
+  <!-- Arrow 6→7 -->
+  <line x1="340" y1="800" x2="340" y2="825" stroke="#555" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Passed label -->
+  <text x="355" y="818" font-size="10" fill="#27ae60" font-weight="bold">≈ 33% retained</text>
+
+  <!-- ==================== ROW 7: Output ==================== -->
+  <rect x="150" y="828" width="380" height="70" rx="6" fill="#d5f5e3" stroke="#27ae60" stroke-width="1.5"/>
+  <text x="340" y="850" text-anchor="middle" font-size="14" font-weight="bold" fill="#27ae60">Output → Stage B</text>
+  <text x="340" y="870" text-anchor="middle" font-size="12" fill="#333">High-risk ROI candidates</text>
+  <text x="340" y="887" text-anchor="middle" font-size="12" fill="#333">forwarded for deep Swin–Temporal Transformer analysis</text>
+
+  <!-- ==================== Summary bar ==================== -->
+  <rect x="105" y="920" width="470" height="45" rx="6" fill="#f8f9fa" stroke="#bdc3c7" stroke-width="1" stroke-dasharray="5,3"/>
+  <text x="340" y="938" text-anchor="middle" font-size="11" fill="#7f8c8d" font-style="italic">Stage A eliminates ≈ 67% of temporal window samples,</text>
+  <text x="340" y="955" text-anchor="middle" font-size="11" fill="#7f8c8d" font-style="italic">reducing computational load on Stage B while preserving high recall.</text>
+
+</svg>

@@ -5,7 +5,6 @@
 \usepackage[T5]{fontenc}
 \usepackage[english]{babel}
 
-\usepackage{cite}
 \usepackage{amsmath,amssymb,amsfonts}
 \usepackage{algorithmic}
 \usepackage{graphicx}
@@ -14,7 +13,7 @@
 \usepackage{subcaption}
 \usepackage{float}
 \usepackage{multirow}
-\usepackage[numbers]{natbib}
+\usepackage[numbers,sort&compress]{natbib}
 
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
@@ -28,9 +27,7 @@
 
 \begin{document}
 
-\title{A Multi-Stage Violence Detection Framework for CCTV Surveillance Using Swin Transformer and Temporal Transformer\\
-\thanks{}
-}
+\title{A Multi-Stage Violence Detection Framework for CCTV Surveillance Using Swin Transformer and Temporal Transformer}
 
 \author{
     \textbf{1. Hà Như Thái}, \textbf{2. Phạm Tiến Đức}, \textbf{3. Nguyễn Minh Đức}, \textbf{4. Lê Hữu Chính}\\
@@ -113,20 +110,20 @@ Stage~A is the cheap front end of the pipeline. Its job is to spot interactions 
 
 
 \subsubsection{Multi-source Data Normalization and Perspective Adaptation}
-Real-world surveillance data is heterogeneous, with wide variation in resolution and frame rate. Applying physical thresholds directly to raw data therefore produces inconsistent results; the same hand gesture produces a much larger pixel displacement in 4K video than in SD. To make the physical calculations comparable across sources, we normalize every input frame to a fixed width of $W_{target} = 640\text{px}$. We picked 640~px because it is the native input resolution of YOLOv8~\cite{jocher_yolov8_2023}, so detection accuracy is preserved without interpolation artifacts, and the optical-flow computation that follows runs faster. Furthermore, velocity and acceleration metrics are scaled by the source video's FPS to ensure temporal invariance.
+Our input pool comes from six different datasets at six different resolutions and frame rates, and that variance breaks any physics threshold we apply on top of the raw pixels. The same hand gesture covers many more pixels in 4K than in SD, so a fixed velocity threshold would label the 4K version violent and the SD version non-violent. We deal with this in two ways. Spatially, every input frame is resized to a fixed width of $W_{target} = 640$~px, which is also the native input size of YOLOv8~\cite{jocher_yolov8_2023}, so detection accuracy is not lost to interpolation and the optical-flow pass that follows is cheaper. Temporally, we divide the velocity and acceleration by the source FPS so the units are pixels-per-second rather than pixels-per-frame.
 
-Following object detection and tracking using YOLOv8~\cite{jocher_yolov8_2023} and DeepSORT~\cite{wojke_simple_2017}, a challenge arises regarding perspective distortion in 2D cameras, which renders interaction distance estimation inaccurate. Instead of using a fixed threshold, we employ an \textit{Adaptive Grouping} mechanism. The interaction threshold $T_{adaptive}$ between two individuals is dynamically calculated based on their own bounding box dimensions:
+After YOLOv8~\cite{jocher_yolov8_2023} detects persons and DeepSORT~\cite{wojke_simple_2017} assigns IDs across frames, we still face perspective distortion: two people at different depths cannot be compared with the same distance threshold. Rather than tuning one fixed value per camera, we let the threshold scale with the actors themselves. The pairwise threshold $T_{adaptive}$ between persons $i$ and $j$ is:
 
 \begin{equation}
 T_{adaptive} = K \times \frac{H_i + H_j}{2}
 \label{eq:adaptive_threshold}
 \end{equation}
 
-\noindent where $H_i$ and $H_j$ are the heights of the bounding boxes of individuals $i$ and $j$, respectively. Height is selected as the scale proxy because, under perspective projection, a person at greater depth appears shorter in pixel space proportionally to their distance, making $H$ a more reliable and consistent indicator of real-world scale than width. This approach allows the system to self-adjust its sensitivity: the threshold is smaller for distant objects (small boxes) and larger for nearby objects, thereby more accurately reflecting the physical spatial relationship regardless of camera distance.
+\noindent where $H_i$, $H_j$ are the bounding-box heights of the two persons. We use height (not width or area) because under perspective, height scales most cleanly with depth: a person twice as far from the camera appears roughly half as tall, while width also varies with body pose. The rule is self-calibrating in practice: distant subjects produce small boxes and small thresholds, nearby subjects produce large ones, and what counts as "close enough to interact" stays consistent regardless of where the person stands in the frame.
 
 \begin{figure}[!htbp]
     \centering
-    % --- Ảnh (a): Gom nhóm thành công ---
+    % --- (a) Successful grouping ---
     \begin{subfigure}[b]{\columnwidth}
         \centering
         \includegraphics[width=\linewidth]{image/group_people.jpeg} 
@@ -136,7 +133,7 @@ T_{adaptive} = K \times \frac{H_i + H_j}{2}
     
     \vspace{0.3cm}
     
-    % --- Ảnh (b): Phân tách đúng người đi lẻ ---
+    % --- (b) Correct separation of independent pedestrians ---
     \begin{subfigure}[b]{\columnwidth}
         \centering
         \includegraphics[width=\linewidth]{image/non_group_people.jpeg}
@@ -148,33 +145,33 @@ T_{adaptive} = K \times \frac{H_i + H_j}{2}
     \label{fig:grouping_results}
 \end{figure}
 
-The effectiveness of the adaptive grouping mechanism is empirically validated in Fig.~\ref{fig:grouping_results}. In the positive grouping scenario (Fig.~\ref{fig:grouping_pos}), the algorithm successfully identifies two distinct interaction groups from a total of five detected individuals using a scaling factor of $K=1.50$. Group 1, consisting of two subjects positioned further from the camera, exhibits an inter-person distance of $49.75$ pixels against an adaptive threshold of $T_{adaptive}=101.94$ pixels, demonstrating successful grouping despite the relatively small absolute pixel displacement. This behavior exemplifies the scale-invariance property of the adaptive threshold: distant subjects with smaller bounding boxes generate proportionally smaller thresholds, ensuring accurate proximity assessment regardless of depth. Group 2, comprising three individuals in closer proximity to the camera, presents a more complex configuration with inter-pair distances ranging from $64.68$ to $199.84$ pixels and corresponding adaptive thresholds varying between $157.04$ and $169.13$ pixels. Despite the maximum separation of $199.84$ pixels exceeding the average threshold by approximately $18\%$, all three subjects are correctly unified due to the pairwise adaptive nature of the grouping criterion.
+Fig.~\ref{fig:grouping_results} shows two cases from our test footage that illustrate how the rule behaves in practice. In the positive case (Fig.~\ref{fig:grouping_pos}), the algorithm finds two interaction groups out of five detected persons at $K=1.50$. Group~1 contains two subjects far from the camera. Their inter-person distance is only $49.75$~px, but the adaptive threshold is also small ($T_{adaptive} = 101.94$~px), so the rule still recognizes them as interacting. A fixed-distance threshold would either miss this pair (if tuned for nearby subjects) or merge unrelated people behind them (if tuned for distant ones). Group~2 has three subjects closer to the camera, with pairwise distances between $64.68$ and $199.84$~px and pairwise thresholds between $157.04$ and $169.13$~px. The widest pair ($199.84$~px) overshoots its own threshold ($169.13$~px) by about $18\%$, but because grouping is transitive across pairwise links, all three are still merged into one group through the closer intermediate links.
 
-Conversely, the negative case illustrated in Fig.~\ref{fig:grouping_neg} demonstrates the algorithm's discriminative capability in preventing false groupings. Two pedestrians walking independently, each forming a singleton group, maintain a spatial separation of $793.77$ pixels. Given their bounding box heights of $H_1=394$ px and $H_2=452$ px, the computed adaptive threshold is $T_{adaptive}=1.50\times(394+452)/2=634.5$ pixels. The actual distance exceeds this threshold by approximately $25\%$, thereby correctly preventing their unification into a single group. This precision is crucial for minimizing computational overhead by excluding irrelevant pedestrian pairs from subsequent motion analysis and reducing false positive detections in crowded surveillance scenarios.
+The negative case in Fig.~\ref{fig:grouping_neg} shows the same rule rejecting an over-eager grouping. Two pedestrians walking past each other have bounding-box heights of $H_1=394$~px and $H_2=452$~px, which gives a threshold of $T_{adaptive} = 1.50 \times (394+452)/2 = 634.5$~px. Their actual separation is $793.77$~px, about $25\%$ over the threshold, so the rule keeps them as two singleton groups. This kind of rejection is what makes the rest of the pipeline cheap: every pair we discard here is a pair we never have to feed into the deep recognizer.
 
 
 \subsubsection{Micro-physical Feature Extraction}
-At each timestamp $t$, the system calculates instantaneous physical metrics for each individual in a group. A critical aspect of our method is the \textit{height normalization} technique. The instantaneous velocity $v_t$ is divided by the object's height ($H_t$), eliminating depth-induced errors and transforming pixel velocity into an index representing the relative energy consumption of the body:
+At every frame $t$ we record per-person motion statistics. The one detail that needs explaining is height normalization. Raw pixel velocity is misleading because the same body movement covers different distances on the sensor depending on how far the person is from the camera. Dividing by the bounding-box height $H_t$ cancels this depth bias and turns the quantity into something closer to "speed expressed in body lengths per second":
 
 \begin{equation}
 v_t = \frac{\sqrt{(x_t - x_{t-1})^2 + (y_t - y_{t-1})^2}}{H_t} \times \text{FPS}
 \label{eq:velocity}
 \end{equation}
 
-\noindent Instantaneous acceleration ($a_t$) and movement direction angle ($\theta_t$) are also computed to serve as the basis for the subsequent aggregation step.
+\noindent We compute the per-frame acceleration $a_t$ and the movement direction angle $\theta_t$ the same way, and these three series feed the aggregation step below.
 
 \subsubsection{Visual Feature Extraction and Heatmap Representation}
 
-In addition to analyzing bounding box coordinates, we extract visual features to capture subtle movements that the bounding box centroid may overlook, such as the rapid motion of limbs. We employ the Farneback Dense Optical Flow algorithm~\cite{farneback_2003} on two consecutive grayscale frames, $I_{t-1}$ and $I_{t}$. The conversion to grayscale is performed to reduce the computational workload and to focus the analysis on light intensity changes rather than chromatic information.
+Bounding-box centroids capture how the whole body moves, but they miss the limb-level activity that often signals a fight: a thrown punch, a swung arm, a quick kick. To recover those signals we run Farneback dense optical flow~\cite{farneback_2003} between consecutive frames $I_{t-1}$ and $I_t$. We convert both frames to grayscale first because the optical-flow estimate only depends on intensity gradients and color channels add cost without helping accuracy.
 
-For each pixel $(x, y)$, the algorithm solves the displacement equations to determine the motion vector $V = (u, v)$, where $u$ and $v$ represent the horizontal and vertical displacement components, respectively. Subsequently, a motion energy representation, termed the "Heatmap," is constructed based on the magnitude of these vectors:
+The flow estimate gives a motion vector $V = (u, v)$ at every pixel $(x, y)$, where $u$ and $v$ are the horizontal and vertical displacements. From this we build a single-channel "heatmap" by taking the magnitude:
 
 \begin{equation}
 M(x, y) = \sqrt{u^2 + v^2}
 \label{eq:heatmap_magnitude}
 \end{equation}
 
-The resulting heatmap $M(x, y)$ is a single-channel matrix where the brightness of each pixel is directly proportional to the movement speed at that specific location. Regions with high-intensity movements, such as punches or kicks, appear as bright, vibrant areas, whereas static objects result in black pixels ($M \approx 0$). This representation provides a localized, intuitive visualization of the motion intensity within the identified Region of Interest (ROI), serving as a crucial visual descriptor for distinguishing between normal and violent interactions. The use of optical flow as a complementary motion representation follows established practices in action recognition~\cite{simonyan_two-stream_2014} and violence detection~\cite{gracia_fast_2015}.
+$M$ is a per-pixel motion-energy map: pixels where things are moving fast (punches, kicks, swinging limbs) are bright, pixels with static content (walls, parked objects) are near zero. Inside the ROI this gives us a localized motion picture that the box centroid alone cannot produce. Optical flow has a long history as a complementary motion cue in both action recognition~\cite{simonyan_two-stream_2014} and violence detection~\cite{gracia_fast_2015}, and we use it here in the same spirit.
 \begin{figure}[!htbp]
     \centering
     \includegraphics[width=\columnwidth]{image/heatmap_violence.jpeg}
@@ -182,19 +179,19 @@ The resulting heatmap $M(x, y)$ is a single-channel matrix where the brightness 
     \label{fig:heatmap_analysis}
 \end{figure}
 
-The effectiveness of combining physical and visual feature descriptors is concretely illustrated in Fig.~\ref{fig:heatmap_analysis}. In this frame, the system detects Group 1 consisting of two individuals (ID 2 and ID 3) engaged in physical altercation. From a visual perspective, the heatmap accurately reflects the energy distribution: static background regions (walls, vegetation) are completely suppressed (cold blue tones, $M \approx 0$), while the conflict zone concentrates maximum energy (bright red). This results in a heatmap variance index ($\sigma_{heat}$) of $2.96$, indicating pronounced contrast between subjects and background.
+Fig.~\ref{fig:heatmap_analysis} shows how the physical and visual descriptors line up on a real positive sample from our test set. The system flags Group~1, which contains two individuals (IDs 2 and 3) in an active fight. The heatmap behaves as expected: walls and vegetation in the background sit at $M \approx 0$ (blue), while the contact region between the two fighters lights up red. The resulting heatmap variance $\sigma_{heat}$ comes out at $2.96$, which is the kind of high-contrast localized signature we expect from a real altercation rather than from generic crowd motion.
 
-More importantly, analysis of the 7-dimensional feature vector $V_{raw}$ reveals strong alignment with the impulse and chaos hypotheses. Although the group's mean velocity is relatively high ($\mu_v \approx 69.49$), the decisive indicator is the Maximum Acceleration ($A_{max}$) reaching $74.42$ — far exceeding the safety threshold of $15.0$. This value represents the abrupt velocity change (jerk) characteristic of punches or forceful impacts. Simultaneously, the Interaction Entropy ($S_{interaction}$) registers $103.03^\circ$, evidencing that the two subjects are moving in opposing or chaotic directions, distinctly different from the parallel motion of pedestrians walking together. The combination of these indicators triggers a Violence Risk alert, enabling the system to accurately localize the event for subsequent processing.
+The 7-dimensional descriptor for this window confirms the visual reading. Mean velocity is already high ($\mu_v \approx 69.49$), but the more decisive number is the maximum acceleration $A_{max} = 74.42$, almost five times our $15.0$ threshold. That kind of spike corresponds to the jerk produced by a punch or kick rather than to steady running. The interaction entropy $S_{interaction} = 103.03^\circ$ is consistent with the same reading: the two subjects are moving in roughly opposing directions, not in parallel like pedestrians walking together. Taken together, these features cross the gating criteria and Stage~A forwards the window to the deep recognizer.
 
 \subsubsection{Feature Vector Aggregation and Dynamic Analysis}
-Violent behavior rarely occurs as a single isolated frame but rather as a sequence of continuous fluctuations. Therefore, we establish a sliding window of size $N=10$ frames. From the raw data collected within this window, we perform statistical aggregation to compress temporal information into a fixed spatial representation. The result is a 7-dimensional feature vector, denoted as $V_{raw}$, defined as follows:
+A single frame rarely tells us whether a fight is happening; a punch is a sequence of acceleration, contact, and recoil that plays out over several frames. We therefore work in windows of $N = 10$ frames and reduce the per-frame physical signals inside each window to a small fixed-size summary. The summary we use is a 7-dimensional vector $V_{raw}$:
 
 \begin{equation}
 V_{raw} = [\mu_v, \sigma_v, \mu_a, A_{max}, S_{interaction}, \mu_{heat}, \sigma_{heat}]
 \label{eq:feature_vector}
 \end{equation}
 
-\noindent Each component in this vector is designed to capture a specific physical aspect of the behavior:
+\noindent Each component targets one specific aspect of how the group is moving:
 
 \begin{itemize}
     \item \textbf{Kinetic energy ($\mu_v, \sigma_v$):} We take the mean and standard deviation of normalized velocity. $\mu_v$ tracks the average energy of the group; a static group has $\mu_v \approx 0$. The mean alone is not enough though, because jogging and fighting can both register a high $\mu_v$. The standard deviation $\sigma_v$ captures the difference: violent motion is jerky (lunges followed by pauses), so $\sigma_v$ comes out much higher than for smooth, harmonic motion at the same speed.
@@ -253,7 +250,7 @@ at this stage. The moderate precision is by design: any remaining false positive
 of all temporal window samples (about 60\% from physics thresholding and an additional 7\% from the SVM), forwarding roughly 33\%
 of the candidates to Stage~B for deep analysis. The SVM is therefore mainly a refiner: the physics thresholds do the heavy lifting on load reduction, and the SVM cleans up the borderline cases that would otherwise inflate Stage~B's input. At that point, the system extracts a $T = 16$ consecutive-frame ROI sequence centered on the flagged time instant, where the Swin--Temporal Transformer provides the fine-grained spatiotemporal reasoning that the compact physical features cannot achieve.
 
-To quantify Stage~A's impact at the video level (the metric that matters most for deployment), we analyze whether each violent source video generates at least one forwarded window to Stage~B. On the training partition, Stage~A successfully forwards at least one candidate window for \textbf{96.2\%} of all violent source videos, confirming that fewer than 4\% of violent events are permanently suppressed before reaching the deep recognizer. The remaining 3.8\% are mostly slow-escalation scenarios where neither $A_{max}$ nor $\mu_{heat}$ crosses the physics-based thresholds across the entire 10-frame sliding window. We acknowledge this failure mode in the Limitations section. The gap between the clip-level SVM recall (77.3\%) and this video-level recall (96.2\%) is expected: each violent video contains multiple sliding windows, so missing some individual windows does not preclude the deep recognizer from receiving at least one valid candidate per violent event.
+For deployment, the metric that actually matters is video-level coverage: does every violent source video produce at least one window that reaches Stage~B? On the training partition (used here as a forwarding-rate diagnostic rather than as a classification benchmark), Stage~A forwards at least one candidate window for \textbf{96.2\%} of the violent source videos. Fewer than 4\% of violent events are silently filtered out before the deep recognizer ever sees them. The 3.8\% we lose are mostly slow-escalation scenarios where neither $A_{max}$ nor $\mu_{heat}$ crosses the physics-based thresholds inside any 10-frame window. We acknowledge this failure mode in the Limitations section. Note that the 77.3\% clip-level SVM recall and the 96.2\% video-level forwarding rate are consistent: each violent video typically contains many sliding windows, so missing some of them individually does not stop at least one valid candidate from reaching the deep recognizer.
 
 The output of Stage~A is a set of flagged temporal windows, each associated with a specific interaction group and timestamp. For each flagged window, we extract the corresponding group's ROI by computing the union bounding box of all tracked individuals within that group, padded by 15\% to preserve peripheral context. A clip of $T = 16$ consecutive frames is then sampled uniformly from a temporal neighborhood extending slightly beyond the original 10-frame analysis window, capturing both the preceding approach phase and the subsequent aftermath. Each frame is cropped to the ROI region and resized to $224 \times 224$ pixels. This clip constitutes the input to Stage~B. By construction, Stage~B processes only the filtered, high-risk candidates rather than the full video stream, inheriting the computational savings established by Stage~A's early elimination of approximately 67\% of all temporal windows.
 
@@ -300,9 +297,9 @@ For each Stage~A-filtered ROI, a clip of $T$ uniformly sampled frames is constru
 \label{eq:clip_frames}
 \end{equation}
 
-\noindent We set $T = 16$, a choice that balances temporal context coverage against per-clip inference latency. To extend the effective observation window without increasing the token count, frames are sampled at a stride of $s$ frames, where $s$ is determined by the source frame rate. In practice we use $s=2$ for 30~FPS sources (covering $\sim$1.07~s per clip) and $s=3$ for 60~FPS sources, ensuring the 16-frame clip spans approximately one second of real time regardless of the source resolution-frame-rate combination.
+\noindent We set $T = 16$, a choice that balances temporal context coverage against per-clip inference latency. To extend the effective observation window without increasing the token count, frames are sampled at a stride of $s$ frames, where $s$ is determined by the source frame rate. In practice we use $s=2$ for 30~FPS sources and $s=4$ for 60~FPS sources, so the 16-frame clip spans about 1.07~s of real time in both cases regardless of the source frame rate.
 
-During training, stochastic temporal augmentations are applied to promote invariance to absolute clip position: random clip start offset, small temporal jitter on the sampling stride, and probabilistic frame dropout. These augmentations are applied independently per clip and do not alter the number of tokens consumed by the Temporal Transformer.
+We apply a few cheap temporal augmentations at training time so the model does not lock onto a specific clip position. The start offset is randomized within the source neighborhood, the sampling stride gets a small jitter, and a random subset of frames is dropped per clip. None of these change the token count seen by the Temporal Transformer, so the per-clip compute stays constant.
 
 Using the frame-level descriptor $\tilde{z}_t \in \mathbb{R}^{d_0}$ produced by the Swin encoder for each frame, the clip is represented as a matrix:
 
@@ -327,7 +324,7 @@ H^\ell = \text{TransformerEnc}(H^{\ell-1}), \quad \ell = 1, \ldots, L
 
 \noindent In our configuration, $L = 2$ encoder layers are used, each with $h = 8$ attention heads operating on the full $d_0 = 768$-dimensional space (head dimension $d_k = 96$). A dropout rate of $p = 0.1$ is applied to both the attention weights and the feed-forward activations within each layer to mitigate overfitting on the relatively compact ROI clip dataset.
 
-Self-attention computes pairwise compatibility scores between every pair of temporal positions $(t_i, t_j)$, enabling the encoder to selectively integrate evidence from the approach phase, the moment of contact, and the recoil phase simultaneously. This global receptive field over the clip is the primary architectural advantage over LSTM, which must propagate information sequentially and is prone to gradient attenuation across long time spans.
+Self-attention scores every pair of temporal positions $(t_i, t_j)$ directly, so the encoder can pull evidence from the approach phase, the contact frame, and the recoil phase at once instead of relaying information through a hidden state. This is the main reason we picked a Transformer over an LSTM here: gradients no longer have to flow along a long chain of time steps, which is where recurrent encoders tend to lose signal on our 16-frame clips.
 
 After $L$ encoder layers, the clip representation $H^L \in \mathbb{R}^{T \times d_0}$ is aggregated via temporal mean pooling:
 
@@ -377,21 +374,21 @@ The combined pool has 5,746 clips, split evenly between violent and non-violent 
 
 \begin{table}[!htbp]
 \centering
+\footnotesize
 \caption{Experimental Dataset Distribution}
 \label{tab:exp_dataset}
-\footnotesize
-\begin{tabular}{lcccc}
+\begin{tabular}{clccc}
 \hline
-\textbf{No.} & \textbf{Dataset} & \textbf{Test} & \textbf{Viol.} & \textbf{Non-Viol.} \\
+\textbf{\#} & \textbf{Dataset} & \textbf{Total} & \textbf{Viol.} & \textbf{Non-V.} \\
 \hline
 1 & RWF-2000~\cite{cheng_rwf-2000_2020} & 2000 & 1000 & 1000 \\
-2 & Real Life Violence Situations~\cite{soliman_violence_2019} & 2000 & 1000 & 1000 \\
+2 & RLVS~\cite{soliman_violence_2019} & 2000 & 1000 & 1000 \\
 3 & Hockey Fight~\cite{nievas2011violence} & 1000 & 500 & 500 \\
-4 & Auto Violence Detection~\cite{bianculli_dataset_2020} & 350 & 175 & 175 \\
-5 & Movies Violence / Non-Violence~\cite{bermejo_nievas_violence_2011} & 246 & 123 & 123 \\
-6 & PTIT Dataset (ours) & 150 & 75 & 75 \\
+4 & AVD~\cite{bianculli_dataset_2020} & 350 & 175 & 175 \\
+5 & Movies V/N-V~\cite{bermejo_nievas_violence_2011} & 246 & 123 & 123 \\
+6 & PTIT (ours) & 150 & 75 & 75 \\
 \hline
-\textbf{Total} &  & \textbf{5746} & \textbf{2873} & \textbf{2873} \\
+\multicolumn{2}{l}{\textbf{Total}} & \textbf{5746} & \textbf{2873} & \textbf{2873} \\
 \hline
 \end{tabular}
 \end{table}
@@ -405,45 +402,28 @@ Table~\ref{tab:exp_dataset} details the source composition. Table~\ref{tab:test_
 \caption{Sample Metadata from the Dataset}
 \label{tab:test_dataset_description}
 \resizebox{\linewidth}{!}{%
-\begin{tabular}{|c|c|c|l|c|}
+\begin{tabular}{cccl c}
 \hline
-\textbf{Video Name} & \textbf{Resolution} & \textbf{Total Time} & \textbf{Description} & \textbf{Violence} \\
+\textbf{Video} & \textbf{Resolution} & \textbf{Length} & \textbf{Description} & \textbf{Label} \\
 \hline
-VID01 & 1280x720 & 03:02 & Daytime interaction & Violent \\
-\hline
-VID02 & 1280x720 & 02:45 & Daytime interaction & Violent \\
-\hline
-VID03 & 1280x720 & 03:21 & Night interaction & Non-Violent \\
-\hline
-VID04 & 1280x720 & 02:58 & Night interaction & Violent \\
-\hline
-VID05 & 1024x576 & 03:51 & Close interaction & Non-Violent \\
-\hline
-VID06 & 1024x576 & 04:00 & Close interaction & Non-Violent \\
-\hline
-VID07 & 960x540 & 03:25 & Far interaction & Violent \\
-\hline
-VID08 & 960x540 & 03:41 & Far interaction & Non-Violent \\
-\hline
-VID09 & 960x540 & 03:56 & Crowded interaction & Violent \\
-\hline
-VID10 & 854x480 & 02:50 & Crowded interaction & Violent \\
-\hline
-VID11 & 854x480 & 02:37 & Multiple people interaction & Non-Violent \\
-\hline
-VID12 & 854x480 & 03:44 & Multiple people interaction & Violent \\
-\hline
-VID13 & 640x480 & 03:18 & Indoor interaction & Non-Violent \\
-\hline
-VID14 & 640x480 & 02:59 & Indoor interaction & Non-Violent \\
-\hline
-VID15 & 1280x720 & 03:35 & Daytime interaction & Violent \\
-\hline
-VID16 & 960x540 & 03:12 & Far interaction & Non-Violent \\
-\hline
-VID17 & 854x480 & 02:54 & Night interaction & Violent \\
-\hline
-VID18 & 1024x576 & 03:27 & Crowded interaction & Non-Violent \\
+VID01 & 1280$\times$720 & 03:02 & Daytime interaction & Violent \\
+VID02 & 1280$\times$720 & 02:45 & Daytime interaction & Violent \\
+VID03 & 1280$\times$720 & 03:21 & Night interaction & Non-Violent \\
+VID04 & 1280$\times$720 & 02:58 & Night interaction & Violent \\
+VID05 & 1024$\times$576 & 03:51 & Close interaction & Non-Violent \\
+VID06 & 1024$\times$576 & 04:00 & Close interaction & Non-Violent \\
+VID07 & 960$\times$540  & 03:25 & Far interaction & Violent \\
+VID08 & 960$\times$540  & 03:41 & Far interaction & Non-Violent \\
+VID09 & 960$\times$540  & 03:56 & Crowded scene & Violent \\
+VID10 & 854$\times$480  & 02:50 & Crowded scene & Violent \\
+VID11 & 854$\times$480  & 02:37 & Multi-person interaction & Non-Violent \\
+VID12 & 854$\times$480  & 03:44 & Multi-person interaction & Violent \\
+VID13 & 640$\times$480  & 03:18 & Indoor interaction & Non-Violent \\
+VID14 & 640$\times$480  & 02:59 & Indoor interaction & Non-Violent \\
+VID15 & 1280$\times$720 & 03:35 & Daytime interaction & Violent \\
+VID16 & 960$\times$540  & 03:12 & Far interaction & Non-Violent \\
+VID17 & 854$\times$480  & 02:54 & Night interaction & Violent \\
+VID18 & 1024$\times$576 & 03:27 & Crowded scene & Non-Violent \\
 \hline
 \end{tabular}%
 }
@@ -514,7 +494,7 @@ We investigate each pipeline component through a controlled ablation, keeping th
 \caption{Ablation study results on the validation set (1149 clips)}
 \label{tab:ablation}
 \resizebox{\columnwidth}{!}{%
-\begin{tabular}{|l|c|c|c|c|}
+\begin{tabular}{lcccc}
 \hline
 \textbf{Method} & \textbf{Acc. (\%)} & \textbf{Prec. (\%)} & \textbf{Recall (\%)} & \textbf{F1 (\%)} \\
 \hline
@@ -533,7 +513,7 @@ Adding per-frame Swin encoding without any temporal context (\textit{Swin Only})
 
 Bypassing Stage~A and running Stage~B over every detected ROI (\textit{Stage~B without Stage~A}) yields 89.2\% accuracy. This setting pushes about $5.8\times$ more candidate ROIs through the deep model per video relative to the filtered pipeline. We get this ratio by comparing the mean active-ROI count per test clip with and without Stage~A. The inflated candidate set raises GPU load and exposes the recognizer to more background clutter, which in turn pushes the false-positive rate above that of the filtered variant.
 
-The complete two-stage pipeline reaches 91.2\% accuracy and a 91.4\% F1-score, a 2.3 percentage-point gain in F1 over Stage~B alone. Stage~A improves input quality by removing most non-violent candidates before deep inference runs, while Stage~B handles the ambiguous cases that kinematic features cannot resolve on their own. Neither module reproduces this performance independently, and the gain is achieved without a proportional increase in computational cost because Stage~B only fires on the reduced filtered set.
+The complete two-stage pipeline reaches 91.2\% accuracy and 91.4\% F1, which is 2.3 F1 points above Stage~B alone. The split of labor here is what matters: Stage~A cleans up the input before the deep model ever sees it, and Stage~B then has capacity left over for the ambiguous cases that kinematic features alone cannot resolve. Neither half reaches this score on its own, and we pay for the gain without much extra compute because Stage~B only runs on the filtered subset.
 
 \subsection{Hyperparameter Sensitivity Analysis}
 
@@ -543,7 +523,7 @@ To check that the system is not over-tuned to specific hyperparameter values, we
 \centering
 \caption{Hyperparameter sensitivity on the validation set (1149 clips)}
 \label{tab:sensitivity}
-\begin{tabular}{|l|c|c|c|}
+\begin{tabular}{lccc}
 \hline
 \textbf{Parameter} & \textbf{Value} & \textbf{Acc. (\%)} & \textbf{F1 (\%)} \\
 \hline
@@ -562,16 +542,16 @@ To check that the system is not over-tuned to specific hyperparameter values, we
 \end{tabular}
 \end{table}
 
-As shown in Table~\ref{tab:sensitivity}, the system achieves peak performance at the default settings and degrades gracefully outside these values. For $K$: a smaller value (1.00) under-groups individuals in crowded scenes, reducing Stage~B candidate coverage and dropping F1 by 3.8 points; a larger value (2.00) over-groups unrelated bystanders, increasing false positives and reducing F1 by 1.7 points. For $N$: a window of 5~frames captures insufficient kinematic evidence for reliable SVM pre-filtering, while 20~frames introduces temporal lag without proportional accuracy gain. For $T$: increasing clip length to 32~frames yields only a 0.4-point F1 improvement at double the Stage~B computational cost, confirming $T=16$ as the optimal efficiency--accuracy trade-off.
+Table~\ref{tab:sensitivity} shows the trend. Performance peaks at the default values and falls off in a predictable way at either end. For $K$, the smaller value of $1.00$ under-groups people in crowded scenes, so fewer real interactions reach Stage~B and F1 drops by 3.8 points; $K=2.00$ over-groups unrelated bystanders and trades 1.7 F1 points for the wrong reason. For $N$, a 5-frame window does not give the SVM enough kinematic evidence to be reliable, while a 20-frame window adds latency without improving accuracy. For $T$, going from 16 to 32 frames only buys 0.4 F1 points but doubles Stage~B's per-clip cost, which is why we kept the default at 16.
 
 \subsection{Performance on Unified In-the-Wild Dataset}
 
-\begin{table}[!htbp] 
+\begin{table}[!htbp]
 \centering
 \caption{Comparison with state-of-the-art methods on the Unified Benchmark}
 \label{tab:sota}
 \resizebox{\linewidth}{!}{%
-\begin{tabular}{|l|c|c|c|c|} 
+\begin{tabular}{lcccc}
 \hline
 \textbf{Method} & \textbf{Acc. (\%)} & \textbf{F1 (\%)} & \textbf{AUC (\%)} & \textbf{FPS} \\
 \hline
@@ -584,7 +564,7 @@ Attention-based \cite{pan_violence_2022} & 87.9 & 87.1 & 91.8 & 20.4 \\
 \hline
 \end{tabular}%
 }
-\end{table} 
+\end{table}
 
 Cross-paper comparisons in violence detection are hard to interpret fairly. Different methods evaluate on different splits, on proprietary datasets, or on hardware configurations that vary considerably. To sidestep these confounds, we re-implemented five representative baselines (C3D~\cite{ding_violence_2014}, CNN-LSTM~\cite{patel_realtime_2021}, CNN+RNN~\cite{traore_violence_2024}, X3D~\cite{pathak_streamlining_2024}, and the attention-based network~\cite{pan_violence_2022}) from their original descriptions and trained each one on the Unified Benchmark under matched conditions. All baselines were optimized with AdamW (initial lr~$= 1\times10^{-4}$, weight decay~$= 0.01$), cosine annealing over 50 epochs, batch size of 8, and the same 80/20 stratified split. For C3D and X3D, publicly available ImageNet-pretrained weights were used as initialization; CNN-LSTM, CNN+RNN, and the attention-based model were initialized from random weights following specifications in their source papers. All models receive the same 16-frame ROI clips at $224\times224$ resolution as input. Table~\ref{tab:sota} summarizes accuracy, F1, AUC, and per-clip inference speed for all methods.
 

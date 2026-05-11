@@ -1,0 +1,519 @@
+
+@article{cortes_svm_1995,
+  author  = {Cortes, Corinna and Vapnik, Vladimir},
+  title   = {Support-Vector Networks},
+  journal = {Machine Learning},
+  volume  = {20},
+  number  = {3},
+  pages   = {273--297},
+  year    = {1995},
+  doi     = {10.1007/BF00994018}
+}
+
+@article{gracia_fast_2015,
+  title        = {Fast Fight Detection},
+  volume       = {10},
+  issn         = {1932-6203},
+  url          = {https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0120448},
+  doi          = {10.1371/journal.pone.0120448},
+  abstract     = {Action recognition has become a hot topic within computer vision. However, the action recognition community has focused mainly on relatively simple actions like clapping, walking, jogging, etc. The detection of specific events with direct practical use such as fights or in general aggressive behavior has been comparatively less studied. Such capability may be extremely useful in some video surveillance scenarios like prisons, psychiatric centers or even embedded in camera phones. As a consequence, there is growing interest in developing violence detection algorithms. Recent work considered the well-known Bag-of-Words framework for the specific problem of fight detection. Under this framework, spatio-temporal features are extracted from the video sequences and used for classification. Despite encouraging results in which high accuracy rates were achieved, the computational cost of extracting such features is prohibitive for practical applications. This work proposes a novel method to detect violence sequences. Features extracted from motion blobs are used to discriminate fight and non-fight sequences. Although the method is outperformed in accuracy by state of the art, it has a significantly faster computation time thus making it amenable for real-time applications.},
+  pages        = {e0120448},
+  number       = {4},
+  journaltitle = {{PLOS} {ONE}},
+  shortjournal = {{PLOS} {ONE}},
+  author       = {Gracia, Ismael Serrano and Suarez, Oscar Deniz and Garcia, Gloria Bueno and Kim, Tae-Kyun},
+  urldate      = {2026-02-03},
+  date         = {2015-04-10},
+  langid       = {english},
+  note         = {Publisher: Public Library of Science},
+  keywords     = {Audio signal processing, Blood, Cameras, Computer vision, Hidden Markov models, Prisons, Sports, Support vector machines},
+  file         = {Full Text PDF:C\:\\Users\\LEGION\\Zotero\\storage\\9KKW998I\\Gracia et al. - 2015 - Fast Fight Detection.pdf:application/pdf}
+}
+
+@article{ramzan_review_2019,
+  title        = {A Review on State-of-the-Art Violence Detection Techniques},
+  volume       = {7},
+  issn         = {2169-3536},
+  url          = {https://ieeexplore.ieee.org/abstract/document/8782115},
+  doi          = {10.1109/ACCESS.2019.2932114},
+  abstract     = {With the rapid growth of surveillance cameras to monitor the human activity demands such system which recognize the violence and suspicious events automatically. Abnormal and violence action detection has become an active research area of computer vision and image processing to attract new researchers. The relevant literature presents different techniques for detection of such activities from the video proposed in the recent years. This paper reviews various state-of-the-art techniques of violence detection. In this paper, the methods of detection are divided into three categories that is based on classification techniques used: violence detection using traditional machine learning, using support vector machine ({SVM}), and using deep learning. The feature extraction techniques and object detection techniques of the each single method are also presented. Moreover, datasets and video features that used in the techniques, which play a vital role in recognition process are also discussed. For better understanding, the steps of the research approaches have been presented in an architecture diagram. The overall research findings have been discussed which may be helpful for finding the potential future work in this research domain.},
+  pages        = {107560--107575},
+  journaltitle = {{IEEE} Access},
+  author       = {Ramzan, Muhammad and Abid, Adnan and Khan, Hikmat Ullah and Awan, Shahid Mahmood and Ismail, Amina and Ahmed, Muzamil and Ilyas, Mahwish and Mahmood, Ahsan},
+  urldate      = {2026-02-03},
+  date         = {2019},
+  keywords     = {Cameras, Computer vision, Bibliographies, computer vision, deep learning, Feature extraction, Libraries, machine learning, support vector machine, Surveillance, surveillance camera, Systematics, Violence detection, violent behavior},
+  file         = {Full Text PDF:C\:\\Users\\LEGION\\Zotero\\storage\\H959MYXR\\Ramzan et al. - 2019 - A Review on State-of-the-Art Violence Detection Techniques.pdf:application/pdf}
+}
+
+@inproceedings{bermejo_nievas_violence_2011,
+  location  = {Berlin, Heidelberg},
+  title     = {Violence Detection in Video Using Computer Vision Techniques},
+  isbn      = {978-3-642-23678-5},
+  doi       = {10.1007/978-3-642-23678-5_39},
+  abstract  = {Whereas the action recognition community has focused mostly on detecting simple actions like clapping, walking or jogging, the detection of fights or in general aggressive behaviors has been comparatively less studied. Such capability may be extremely useful in some video surveillance scenarios like in prisons, psychiatric or elderly centers or even in camera phones. After an analysis of previous approaches we test the well-known Bag-of-Words framework used for action recognition in the specific problem of fight detection, along with two of the best action descriptors currently available: {STIP} and {MoSIFT}. For the purpose of evaluation and to foster research on violence detection in video we introduce a new video database containing 1000 sequences divided in two groups: fights and non-fights. Experiments on this database and another one with fights from action movies show that fights can be detected with near 90\% accuracy.},
+  pages     = {332--339},
+  booktitle = {Computer Analysis of Images and Patterns},
+  publisher = {Springer},
+  author    = {Bermejo Nievas, Enrique and Deniz Suarez, Oscar and Bueno García, Gloria and Sukthankar, Rahul},
+  editor    = {Real, Pedro and Diaz-Pernil, Daniel and Molina-Abril, Helena and Berciano, Ainhoa and Kropatsch, Walter},
+  date      = {2011},
+  langid    = {english},
+  keywords  = {action recognition, fight detection, video surveillance}
+}
+
+@article{nguyen_multistage_2021,
+  title        = {Multistage Real-Time Fire Detection Using Convolutional Neural Networks and Long Short-Term Memory Networks},
+  volume       = {9},
+  issn         = {2169-3536},
+  url          = {https://ieeexplore.ieee.org/abstract/document/9584840},
+  doi          = {10.1109/ACCESS.2021.3122346},
+  abstract     = {Fire is one of the most commonly occurring disasters and is the main cause of catastrophic personal injury and devastating property damage. An early detection system is necessary to prevent fires from spreading out of control. In this paper, we propose a multistage fire detection method using convolutional neural networks ({CNNs}) and long short-term memory ({LSTM}) networks. In the first stage, fire candidates are detected by using their salient features, such as their color, flickering frequency, and brightness. In the second stage, a pretrained {CNN} model is used to extract the 2D features of flames that are the input for the {LSTM} network. In the last stage, a softmax classifier is utilized to determine whether the flames represent a true fire or a nonfire moving object. The experimental results show that our proposed method can achieve competitive performance compared with other state-of-the-art methods and is suitable for real-world applications.},
+  pages        = {146667--146679},
+  journaltitle = {{IEEE} Access},
+  author       = {Nguyen, Manh Dung and Vu, Hoai Nam and Pham, Duc Cuong and Choi, Bokgil and Ro, Soonghwan},
+  urldate      = {2026-02-03},
+  date         = {2021},
+  keywords     = {Feature extraction, Computer architecture, convolutional neural network, Deep learning, Fire detection, Heuristic algorithms, Image color analysis, {ImageNet}, long short-term memory, Machine learning algorithms, Microprocessors},
+  file         = {Full Text PDF:C\:\\Users\\LEGION\\Zotero\\storage\\YAKHYRKF\\Nguyen et al. - 2021 - Multistage Real-Time Fire Detection Using Convolutional Neural Networks and Long Short-Term Memory N.pdf:application/pdf}
+}
+
+@online{noauthor_deep_nodate,
+  title   = {A Deep Multi-Phase Attention Model for Compulsive Action Detection in Surveillance Applications {\textbar} {IntechOpen}},
+  url     = {https://www.intechopen.com/journals/1/articles/687},
+  urldate = {2026-02-03}
+}
+
+@online{noauthor_early_nodate,
+  title   = {An Early Detection of Risky Crowd Dynamics Scheme Based on Motion Entropy and Scene Semantics {\textbar} Springer Nature Link},
+  url     = {https://link.springer.com/chapter/10.1007/978-981-95-6203-9_12},
+  urldate = {2026-02-03},
+  file    = {An Early Detection of Risky Crowd Dynamics Scheme Based on Motion Entropy and Scene Semantics | Springer Nature Link:C\:\\Users\\LEGION\\Zotero\\storage\\VGY88NQC\\978-981-95-6203-9_12.html:text/html}
+}
+
+@online{noauthor_wacv_nodate,
+  title   = {{WACV} 2022 Open Access Repository},
+  url     = {https://openaccess.thecvf.com/content/WACV2022/html/Chen_MM-ViT_Multi-Modal_Video_Transformer_for_Compressed_Video_Action_Recognition_WACV_2022_paper.html},
+  urldate = {2026-02-03},
+  file    = {WACV 2022 Open Access Repository:C\:\\Users\\LEGION\\Zotero\\storage\\5299XP9A\\Chen_MM-ViT_Multi-Modal_Video_Transformer_for_Compressed_Video_Action_Recognition_WACV_2022_pap.html:text/html}
+}
+
+@inproceedings{xing_svformer_2023,
+  title      = {{SVFormer}: Semi-Supervised Video Transformer for Action Recognition},
+  url        = {https://openaccess.thecvf.com/content/CVPR2023/html/Xing_SVFormer_Semi-Supervised_Video_Transformer_for_Action_Recognition_CVPR_2023_paper.html},
+  shorttitle = {{SVFormer}},
+  eventtitle = {Proceedings of the {IEEE}/{CVF} Conference on Computer Vision and Pattern Recognition},
+  pages      = {18816--18826},
+  author     = {Xing, Zhen and Dai, Qi and Hu, Han and Chen, Jingjing and Wu, Zuxuan and Jiang, Yu-Gang},
+  urldate    = {2026-02-03},
+  date       = {2023},
+  langid     = {english},
+  file       = {Full Text PDF:C\:\\Users\\LEGION\\Zotero\\storage\\IPZAW2SP\\Xing et al. - 2023 - SVFormer Semi-Supervised Video Transformer for Action Recognition.pdf:application/pdf}
+}
+
+@inproceedings{liu_swin_2022,
+  title      = {Swin Transformer V2: Scaling Up Capacity and Resolution},
+  url        = {https://openaccess.thecvf.com/content/CVPR2022/html/Liu_Swin_Transformer_V2_Scaling_Up_Capacity_and_Resolution_CVPR_2022_paper.html},
+  shorttitle = {Swin Transformer V2},
+  eventtitle = {Proceedings of the {IEEE}/{CVF} Conference on Computer Vision and Pattern Recognition},
+  pages      = {12009--12019},
+  author     = {Liu, Ze and Hu, Han and Lin, Yutong and Yao, Zhuliang and Xie, Zhenda and Wei, Yixuan and Ning, Jia and Cao, Yue and Zhang, Zheng and Dong, Li and Wei, Furu and Guo, Baining},
+  urldate    = {2026-02-03},
+  date       = {2022},
+  langid     = {english},
+  file       = {Full Text PDF:C\:\\Users\\LEGION\\Zotero\\storage\\KV7EUG5R\\Liu et al. - 2022 - Swin Transformer V2 Scaling Up Capacity and Resolution.pdf:application/pdf}
+}
+
+@article{patel_realtime_2021,
+  title      = {Real-Time Violence Detection Using CNN-LSTM},
+  url        = {https://arxiv.org/abs/2107.07578},
+  doi        = {10.48550/arXiv.2107.07578},
+  author     = {Patel, Mann},
+  date       = {2021},
+  eprinttype = {arXiv},
+  eprint     = {2107.07578},
+  keywords   = {violence detection, CNN-LSTM, surveillance}
+}
+
+@article{yun_missiongnn_2024,
+  title      = {MissionGNN: Hierarchical Multimodal GNN-based Weakly Supervised Video Anomaly Recognition with Mission-Specific Knowledge Graph Generation},
+  url        = {https://arxiv.org/abs/2406.18815},
+  doi        = {10.48550/arXiv.2406.18815},
+  author     = {Yun, Sanggeon and Masukawa, Ryozo and Na, Minhyoung and Imani, Mohsen},
+  date       = {2024},
+  eprinttype = {arXiv},
+  eprint     = {2406.18815},
+  keywords   = {GNN, video anomaly recognition, violence detection}
+}
+
+@article{traore_violence_2024,
+  title      = {Violence detection in videos using deep recurrent and convolutional neural networks},
+  url        = {https://arxiv.org/abs/2409.07581},
+  doi        = {10.48550/arXiv.2409.07581},
+  author     = {Traoré, Abdarahmane and Akhloufi, Moulay A.},
+  date       = {2024},
+  eprinttype = {arXiv},
+  eprint     = {2409.07581},
+  keywords   = {CNN, RNN, violence detection, optical flow}
+}
+
+@article{pathak_streamlining_2024,
+  title      = {Streamlining Video Analysis for Efficient Violence Detection},
+  url        = {https://arxiv.org/abs/2412.02127},
+  doi        = {10.48550/arXiv.2412.02127},
+  author     = {Pathak, Gourang and Kumar, Abhay and Rawat, Sannidhya and Gupta, Shikha},
+  date       = {2024},
+  eprinttype = {arXiv},
+  eprint     = {2412.02127},
+  keywords   = {X3D, 3D CNN, violence detection}
+}
+
+@inproceedings{ding_violence_2014,
+  location  = {Cham},
+  title     = {Violence Detection in Video by Using 3D Convolutional Neural Networks},
+  isbn      = {978-3-319-14364-4},
+  doi       = {10.1007/978-3-319-14364-4_53},
+  pages     = {551--558},
+  booktitle = {Advances in Visual Computing},
+  publisher = {Springer},
+  author    = {Ding, Chunhui and Fan, Shouke and Zhu, M. and Feng, W. and Jia, B.},
+  editor    = {Bebis, George and Boyle, Richard D. and Parvin, Bahram and Koracin, Darko and Chung, Remco and Hammound, Rym and Zhiping, Hu and Müller, Hans-Peter and Manning, Patrick and Sundaresan, Neela and Wang, Yucel and Paredes, R. and Benezeth, Yann and Moreno, Miguel},
+  date      = {2014},
+  langid    = {english},
+  series    = {Lecture Notes in Computer Science},
+  volume    = {8888},
+  keywords  = {C3D, 3D CNN, violence detection}
+}
+
+@inproceedings{pan_violence_2022,
+  author    = {Pan, Chenglong and Fei, Shumin},
+  booktitle = {2022 41st Chinese Control Conference (CCC)},
+  title     = {Violence detection based on attention mechanism},
+  year      = {2022},
+  pages     = {6438-6443},
+  keywords  = {violence detection, 3D convolutional neural network, attention mechanism, convolutional LSTM network},
+  doi       = {10.23919/CCC55666.2022.9901930}
+}
+
+//part 1
+
+@inproceedings{9710580,
+  author    = {Liu, Ze and Lin, Yutong and Cao, Yue and Hu, Han and Wei, Yixuan and Zhang, Zheng and Lin, Stephen and Guo, Baining},
+  booktitle = {2021 IEEE/CVF International Conference on Computer Vision (ICCV)},
+  title     = {Swin Transformer: Hierarchical Vision Transformer using Shifted Windows},
+  year      = {2021},
+  volume    = {},
+  number    = {},
+  pages     = {9992-10002},
+  keywords  = {Image segmentation;Computer vision;Visualization;Computational modeling;Semantics;Object detection;Computer architecture;Representation learning;Detection and localization in 2D and 3D;Recognition and classification;Segmentation;grouping and shape},
+  doi       = {10.1109/ICCV48922.2021.00986}
+}
+
+
+@misc{bertasius_is_2021,
+  title      = {Is Space-Time Attention All You Need for Video Understanding?},
+  url        = {http://arxiv.org/abs/2102.05095},
+  doi        = {10.48550/arXiv.2102.05095},
+  abstract   = {We present a convolution-free approach to video classification built exclusively on self-attention over space and time. Our method, named "{TimeSformer}," adapts the standard Transformer architecture to video by enabling spatiotemporal feature learning directly from a sequence of frame-level patches. Our experimental study compares different self-attention schemes and suggests that "divided attention," where temporal attention and spatial attention are separately applied within each block, leads to the best video classification accuracy among the design choices considered. Despite the radically new design, {TimeSformer} achieves state-of-the-art results on several action recognition benchmarks, including the best reported accuracy on Kinetics-400 and Kinetics-600. Finally, compared to 3D convolutional networks, our model is faster to train, it can achieve dramatically higher test efficiency (at a small drop in accuracy), and it can also be applied to much longer video clips (over one minute long). Code and models are available at: https://github.com/facebookresearch/{TimeSformer}.},
+  number     = {{arXiv}:2102.05095},
+  publisher  = {{arXiv}},
+  author     = {Bertasius, Gedas and Wang, Heng and Torresani, Lorenzo},
+  urldate    = {2026-04-22},
+  date       = {2021-06-09},
+  eprinttype = {arxiv},
+  eprint     = {2102.05095 [cs]},
+  keywords   = {Computer Science - Computer Vision and Pattern Recognition},
+  annotation = {Comment: Accepted to {ICML} 2021},
+  file       = {Preprint PDF:C\:\\Users\\LEGION\\Zotero\\storage\\FG3J6IZ8\\Bertasius et al. - 2021 - Is Space-Time Attention All You Need for Video Understanding.pdf:application/pdf;Snapshot:C\:\\Users\\LEGION\\Zotero\\storage\\5W3XNPL7\\2102.html:text/html}
+}
+
+@article{article,
+  author  = {Oise, Godfrey and Unuigbokhai, Belinda and Onwuzo, Chioma and Nwabuokei, Clement and Ejenarhome, Prosper and Atake, Onoriode and Bakare, Sofiat},
+  year    = {2025},
+  month   = {05},
+  pages   = {92-100},
+  title   = {YOLOv8-DeepSORT: A High-Performance Framework for Real-Time Multi-Object Tracking with Attention and Adaptive Optimization},
+  volume  = {2},
+  journal = {Journal of Science Research and Reviews},
+  doi     = {10.70882/josrar.2025.v2i2.50}
+}
+
+//part 2 - nhóm dataset
+
+//RF2000
+@misc{cheng_rwf-2000_2020,
+  title      = {{RWF}-2000: An Open Large Scale Video Database for Violence Detection},
+  url        = {http://arxiv.org/abs/1911.05913},
+  doi        = {10.48550/arXiv.1911.05913},
+  shorttitle = {{RWF}-2000},
+  abstract   = {In recent years, surveillance cameras are widely deployed in public places, and the general crime rate has been reduced significantly due to these ubiquitous devices. Usually, these cameras provide cues and evidence after crimes are conducted, while they are rarely used to prevent or stop criminal activities in time. It is both time and labor consuming to manually monitor a large amount of video data from surveillance cameras. Therefore, automatically recognizing violent behaviors from video signals becomes essential. This paper summarizes several existing video datasets for violence detection and proposes the {RWF}-2000 database with 2,000 videos captured by surveillance cameras in real-world scenes. Also, we present a new method that utilizes both the merits of 3D-{CNNs} and optical flow, namely Flow Gated Network. The proposed approach obtains an accuracy of 87.25\% on the test set of our proposed database. The database and source codes are currently open to access.},
+  number     = {{arXiv}:1911.05913},
+  publisher  = {{arXiv}},
+  author     = {Cheng, Ming and Cai, Kunjing and Li, Ming},
+  urldate    = {2026-04-22},
+  date       = {2020-10-19},
+  eprinttype = {arxiv},
+  eprint     = {1911.05913 [cs]},
+  keywords   = {Computer Science - Computer Vision and Pattern Recognition},
+  annotation = {Comment: Accepted by {ICPR}'20},
+  file       = {Preprint PDF:C\:\\Users\\LEGION\\Zotero\\storage\\P2QQPVIF\\Cheng et al. - 2020 - RWF-2000 An Open Large Scale Video Database for Violence Detection.pdf:application/pdf;Snapshot:C\:\\Users\\LEGION\\Zotero\\storage\\BZ2UWUTZ\\1911.html:text/html}
+}
+
+@inproceedings{nievas2011violence,
+  title        = {Hockey Fight Detection Dataset},
+  author       = {Nievas, Enrique Bermejo and Suarez, Oscar Deniz and Garcia, Gloria Bueno and Sukthankar, Rahul},
+  booktitle    = {Computer Analysis of Images and Patterns},
+  pages        = {332--339},
+  year         = {2011},
+  organization = {Springer},
+  abstract     = {Whereas the action recognition community has focused mostly on detecting simple actions like clapping, walking or jogging, the detection
+                  of fights or in general aggressive behaviors has been comparatively less studied. Such capability may be extremely useful in some video
+                  surveillance scenarios like in prisons, psychiatric or elderly centers or even in camera phones. After an analysis of previous approaches we test the well-known Bag-of-Words framework used for action recognition in the specific problem of fight detection, along with two of the best action descriptors currently available: STIP and MoSIFT. For the purpose of evaluation and to foster research on violence detection in video we introduce a new video database containing 1000 sequences divided in two groups: fights and non-fights. Experiments on this database and another one with fights from action movies show that fights can be detected with near 90% accuracy.
+                  },
+  keywords     = {action recognition, fight detection, video surveillance},
+  terms        = {},
+  url          = {http://visilab.etsii.uclm.es/personas/oscar/FightDetection/}
+}
+
+
+@article{bianculli_dataset_2020,
+  title        = {A dataset for automatic violence detection in videos},
+  volume       = {33},
+  issn         = {2352-3409},
+  url          = {https://www.sciencedirect.com/science/article/pii/S2352340920314682},
+  doi          = {https://doi.org/10.1016/j.dib.2020.106587},
+  abstract     = {The automatic detection of violence and crimes in videos is gaining attention, specifically as a tool to unburden security officers and authorities from the need to watch hours of footages to identify event lasting few seconds. So far, most of the available datasets was composed of few clips, in low resolution, often built on too specific cases (e.g. hockey fight). While high resolution datasets are emerging, there is still the need of datasets to test the robustness of violence detection techniques to false positives, due to behaviours which might resemble violent actions. To this end, we propose a dataset composed of 350 clips ({MP}4 video files, 1920 × 1080 pixels, 30 fps), labelled as non-violent (120 clips) when representing non-violent behaviours, and violent (230 clips) when representing violent behaviours. In particular, the non-violent clips include behaviours (hugs, claps, exulting, etc.) that can cause false positives in the violence detection task, due to fast movements and the similarity with violent behaviours. The clips were performed by non-professional actors, varying from 2 to 4 per clip.},
+  pages        = {106587},
+  journaltitle = {Data in Brief},
+  author       = {Bianculli, Miriana and Falcionelli, Nicola and Sernani, Paolo and Tomassini, Selene and Contardo, Paolo and Lombardi, Mara and Dragoni, Aldo Franco},
+  date         = {2020},
+  keywords     = {Computer vision, Crime detection, Deep learning, Violence detection}
+}
+
+//part 3: sth else
+@misc{vaswani_attention_2023,
+  title      = {Attention Is All You Need},
+  url        = {http://arxiv.org/abs/1706.03762},
+  doi        = {10.48550/arXiv.1706.03762},
+  abstract   = {The dominant sequence transduction models are based on complex recurrent or convolutional neural networks in an encoder-decoder configuration. The best performing models also connect the encoder and decoder through an attention mechanism. We propose a new simple network architecture, the Transformer, based solely on attention mechanisms, dispensing with recurrence and convolutions entirely. Experiments on two machine translation tasks show these models to be superior in quality while being more parallelizable and requiring significantly less time to train. Our model achieves 28.4 {BLEU} on the {WMT} 2014 English-to-German translation task, improving over the existing best results, including ensembles by over 2 {BLEU}. On the {WMT} 2014 English-to-French translation task, our model establishes a new single-model state-of-the-art {BLEU} score of 41.8 after training for 3.5 days on eight {GPUs}, a small fraction of the training costs of the best models from the literature. We show that the Transformer generalizes well to other tasks by applying it successfully to English constituency parsing both with large and limited training data.},
+  number     = {{arXiv}:1706.03762},
+  publisher  = {{arXiv}},
+  author     = {Vaswani, Ashish and Shazeer, Noam and Parmar, Niki and Uszkoreit, Jakob and Jones, Llion and Gomez, Aidan N. and Kaiser, Lukasz and Polosukhin, Illia},
+  urldate    = {2026-04-23},
+  date       = {2023-08-02},
+  eprinttype = {arxiv},
+  eprint     = {1706.03762 [cs]},
+  keywords   = {Computer Science - Computation and Language, Computer Science - Machine Learning},
+  annotation = {Comment: 15 pages, 5 figures},
+  file       = {Preprint PDF:C\:\\Users\\LEGION\\Zotero\\storage\\KQJCVHT9\\Vaswani et al. - 2023 - Attention Is All You Need.pdf:application/pdf;Snapshot:C\:\\Users\\LEGION\\Zotero\\storage\\PZNRZGTJ\\1706.html:text/html}
+}
+
+
+@misc{dosovitskiy_image_2021,
+  title      = {An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale},
+  url        = {http://arxiv.org/abs/2010.11929},
+  doi        = {10.48550/arXiv.2010.11929},
+  shorttitle = {An Image is Worth 16x16 Words},
+  abstract   = {While the Transformer architecture has become the de-facto standard for natural language processing tasks, its applications to computer vision remain limited. In vision, attention is either applied in conjunction with convolutional networks, or used to replace certain components of convolutional networks while keeping their overall structure in place. We show that this reliance on {CNNs} is not necessary and a pure transformer applied directly to sequences of image patches can perform very well on image classification tasks. When pre-trained on large amounts of data and transferred to multiple mid-sized or small image recognition benchmarks ({ImageNet}, {CIFAR}-100, {VTAB}, etc.), Vision Transformer ({ViT}) attains excellent results compared to state-of-the-art convolutional networks while requiring substantially fewer computational resources to train.},
+  number     = {{arXiv}:2010.11929},
+  publisher  = {{arXiv}},
+  author     = {Dosovitskiy, Alexey and Beyer, Lucas and Kolesnikov, Alexander and Weissenborn, Dirk and Zhai, Xiaohua and Unterthiner, Thomas and Dehghani, Mostafa and Minderer, Matthias and Heigold, Georg and Gelly, Sylvain and Uszkoreit, Jakob and Houlsby, Neil},
+  urldate    = {2026-04-23},
+  date       = {2021-06-03},
+  eprinttype = {arxiv},
+  eprint     = {2010.11929 [cs]},
+  keywords   = {Computer Science - Artificial Intelligence, Computer Science - Computer Vision and Pattern Recognition, Computer Science - Machine Learning},
+  annotation = {Comment: Fine-tuning code and pre-trained models are available at https://github.com/google-research/vision\_transformer. {ICLR} camera-ready version with 2 small modifications: 1) Added a discussion of {CLS} vs {GAP} classifier in the appendix, 2) Fixed an error in {exaFLOPs} computation in Figure 5 and Table 6 (relative performance of models is basically not affected)},
+  file       = {Preprint PDF:C\:\\Users\\LEGION\\Zotero\\storage\\4ICCBYFG\\Dosovitskiy et al. - 2021 - An Image is Worth 16x16 Words Transformers for Image Recognition at Scale.pdf:application/pdf;Snapshot:C\:\\Users\\LEGION\\Zotero\\storage\\AEBIAQF6\\2010.html:text/html}
+}
+
+
+@misc{wojke_simple_2017,
+  title      = {Simple Online and Realtime Tracking with a Deep Association Metric},
+  url        = {http://arxiv.org/abs/1703.07402},
+  doi        = {10.48550/arXiv.1703.07402},
+  abstract   = {Simple Online and Realtime Tracking ({SORT}) is a pragmatic approach to multiple object tracking with a focus on simple, effective algorithms. In this paper, we integrate appearance information to improve the performance of {SORT}. Due to this extension we are able to track objects through longer periods of occlusions, effectively reducing the number of identity switches. In spirit of the original framework we place much of the computational complexity into an offline pre-training stage where we learn a deep association metric on a large-scale person re-identification dataset. During online application, we establish measurement-to-track associations using nearest neighbor queries in visual appearance space. Experimental evaluation shows that our extensions reduce the number of identity switches by 45\%, achieving overall competitive performance at high frame rates.},
+  number     = {{arXiv}:1703.07402},
+  publisher  = {{arXiv}},
+  author     = {Wojke, Nicolai and Bewley, Alex and Paulus, Dietrich},
+  urldate    = {2026-04-23},
+  date       = {2017-03-21},
+  eprinttype = {arxiv},
+  eprint     = {1703.07402 [cs]},
+  keywords   = {Computer Science - Computer Vision and Pattern Recognition},
+  annotation = {Comment: 5 pages, 1 figure},
+  file       = {Preprint PDF:C\:\\Users\\LEGION\\Zotero\\storage\\V79RFNV7\\Wojke et al. - 2017 - Simple Online and Realtime Tracking with a Deep Association Metric.pdf:application/pdf;Snapshot:C\:\\Users\\LEGION\\Zotero\\storage\\IZS6DPJE\\1703.html:text/html}
+}
+
+
+@misc{simonyan_two-stream_2014,
+  title      = {Two-Stream Convolutional Networks for Action Recognition in Videos},
+  url        = {http://arxiv.org/abs/1406.2199},
+  doi        = {10.48550/arXiv.1406.2199},
+  abstract   = {We investigate architectures of discriminatively trained deep Convolutional Networks ({ConvNets}) for action recognition in video. The challenge is to capture the complementary information on appearance from still frames and motion between frames. We also aim to generalise the best performing hand-crafted features within a data-driven learning framework. Our contribution is three-fold. First, we propose a two-stream {ConvNet} architecture which incorporates spatial and temporal networks. Second, we demonstrate that a {ConvNet} trained on multi-frame dense optical flow is able to achieve very good performance in spite of limited training data. Finally, we show that multi-task learning, applied to two different action classification datasets, can be used to increase the amount of training data and improve the performance on both. Our architecture is trained and evaluated on the standard video actions benchmarks of {UCF}-101 and {HMDB}-51, where it is competitive with the state of the art. It also exceeds by a large margin previous attempts to use deep nets for video classification.},
+  number     = {{arXiv}:1406.2199},
+  publisher  = {{arXiv}},
+  author     = {Simonyan, Karen and Zisserman, Andrew},
+  urldate    = {2026-04-23},
+  date       = {2014-11-12},
+  eprinttype = {arxiv},
+  eprint     = {1406.2199 [cs]},
+  keywords   = {Computer Science - Computer Vision and Pattern Recognition},
+  file       = {Preprint PDF:C\:\\Users\\LEGION\\Zotero\\storage\\HHJQUZG9\\Simonyan and Zisserman - 2014 - Two-Stream Convolutional Networks for Action Recognition in Videos.pdf:application/pdf;Snapshot:C\:\\Users\\LEGION\\Zotero\\storage\\CJH697EL\\1406.html:text/html}
+}
+
+
+@misc{sudhakaran_learning_2017,
+  title      = {Learning to Detect Violent Videos using Convolutional Long Short-Term Memory},
+  url        = {http://arxiv.org/abs/1709.06531},
+  doi        = {10.48550/arXiv.1709.06531},
+  abstract   = {Developing a technique for the automatic analysis of surveillance videos in order to identify the presence of violence is of broad interest. In this work, we propose a deep neural network for the purpose of recognizing violent videos. A convolutional neural network is used to extract frame level features from a video. The frame level features are then aggregated using a variant of the long short term memory that uses convolutional gates. The convolutional neural network along with the convolutional long short term memory is capable of capturing localized spatio-temporal features which enables the analysis of local motion taking place in the video. We also propose to use adjacent frame differences as the input to the model thereby forcing it to encode the changes occurring in the video. The performance of the proposed feature extraction pipeline is evaluated on three standard benchmark datasets in terms of recognition accuracy. Comparison of the results obtained with the state of the art techniques revealed the promising capability of the proposed method in recognizing violent videos.},
+  number     = {{arXiv}:1709.06531},
+  publisher  = {{arXiv}},
+  author     = {Sudhakaran, Swathikiran and Lanz, Oswald},
+  urldate    = {2026-04-23},
+  date       = {2017-09-19},
+  eprinttype = {arxiv},
+  eprint     = {1709.06531 [cs]},
+  keywords   = {Computer Science - Computer Vision and Pattern Recognition},
+  annotation = {Comment: Accepted in International Conference on Advanced Video and Signal based Surveillance({AVSS} 2017)},
+  file       = {Preprint PDF:C\:\\Users\\LEGION\\Zotero\\storage\\BU2SJY5X\\Sudhakaran and Lanz - 2017 - Learning to Detect Violent Videos using Convolutional Long Short-Term Memory.pdf:application/pdf;Snapshot:C\:\\Users\\LEGION\\Zotero\\storage\\N9FXX4QT\\1709.html:text/html}
+}
+
+
+@misc{arnab_vivit_2021,
+  title      = {{ViViT}: A Video Vision Transformer},
+  url        = {http://arxiv.org/abs/2103.15691},
+  doi        = {10.48550/arXiv.2103.15691},
+  shorttitle = {{ViViT}},
+  abstract   = {We present pure-transformer based models for video classification, drawing upon the recent success of such models in image classification. Our model extracts spatio-temporal tokens from the input video, which are then encoded by a series of transformer layers. In order to handle the long sequences of tokens encountered in video, we propose several, efficient variants of our model which factorise the spatial- and temporal-dimensions of the input. Although transformer-based models are known to only be effective when large training datasets are available, we show how we can effectively regularise the model during training and leverage pretrained image models to be able to train on comparatively small datasets. We conduct thorough ablation studies, and achieve state-of-the-art results on multiple video classification benchmarks including Kinetics 400 and 600, Epic Kitchens, Something-Something v2 and Moments in Time, outperforming prior methods based on deep 3D convolutional networks. To facilitate further research, we release code at https://github.com/google-research/scenic/tree/main/scenic/projects/vivit},
+  number     = {{arXiv}:2103.15691},
+  publisher  = {{arXiv}},
+  author     = {Arnab, Anurag and Dehghani, Mostafa and Heigold, Georg and Sun, Chen and Lučić, Mario and Schmid, Cordelia},
+  urldate    = {2026-04-23},
+  date       = {2021-11-01},
+  eprinttype = {arxiv},
+  eprint     = {2103.15691 [cs]},
+  keywords   = {Computer Science - Computer Vision and Pattern Recognition},
+  annotation = {Comment: {ICCV} 2021. Code at https://github.com/google-research/scenic/tree/main/scenic/projects/vivit},
+  file       = {Preprint PDF:C\:\\Users\\LEGION\\Zotero\\storage\\LXFEAVQH\\Arnab et al. - 2021 - ViViT A Video Vision Transformer.pdf:application/pdf;Snapshot:C\:\\Users\\LEGION\\Zotero\\storage\\HCVJFWYU\\2103.html:text/html}
+}
+
+@article{hochreiter1997lstm,
+  author  = {Hochreiter, Sepp and Schmidhuber, Jürgen},
+  year    = {1997},
+  month   = {11},
+  pages   = {1735-1780},
+  title   = {Long Short-Term Memory},
+  volume  = {9},
+  journal = {Neural Computation},
+  doi     = {10.1162/neco.1997.9.8.1735}
+}
+
+@inproceedings{7410867,
+  author    = {Tran, Du and Bourdev, Lubomir and Fergus, Rob and Torresani, Lorenzo and Paluri, Manohar},
+  booktitle = {2015 IEEE International Conference on Computer Vision (ICCV)},
+  title     = {Learning Spatiotemporal Features with 3D Convolutional Networks},
+  year      = {2015},
+  volume    = {},
+  number    = {},
+  pages     = {4489-4497},
+  keywords  = {Three-dimensional displays;Convolution;Kernel;Feature extraction;Solid modeling;Streaming media;Training},
+  doi       = {10.1109/ICCV.2015.510}
+}
+
+
+@misc{he_deep_2015,
+  title      = {Deep Residual Learning for Image Recognition},
+  url        = {http://arxiv.org/abs/1512.03385},
+  doi        = {10.48550/arXiv.1512.03385},
+  abstract   = {Deeper neural networks are more difficult to train. We present a residual learning framework to ease the training of networks that are substantially deeper than those used previously. We explicitly reformulate the layers as learning residual functions with reference to the layer inputs, instead of learning unreferenced functions. We provide comprehensive empirical evidence showing that these residual networks are easier to optimize, and can gain accuracy from considerably increased depth. On the {ImageNet} dataset we evaluate residual nets with a depth of up to 152 layers---8x deeper than {VGG} nets but still having lower complexity. An ensemble of these residual nets achieves 3.57\% error on the {ImageNet} test set. This result won the 1st place on the {ILSVRC} 2015 classification task. We also present analysis on {CIFAR}-10 with 100 and 1000 layers. The depth of representations is of central importance for many visual recognition tasks. Solely due to our extremely deep representations, we obtain a 28\% relative improvement on the {COCO} object detection dataset. Deep residual nets are foundations of our submissions to {ILSVRC} \& {COCO} 2015 competitions, where we also won the 1st places on the tasks of {ImageNet} detection, {ImageNet} localization, {COCO} detection, and {COCO} segmentation.},
+  number     = {{arXiv}:1512.03385},
+  publisher  = {{arXiv}},
+  author     = {He, Kaiming and Zhang, Xiangyu and Ren, Shaoqing and Sun, Jian},
+  urldate    = {2026-04-23},
+  date       = {2015-12-10},
+  eprinttype = {arxiv},
+  eprint     = {1512.03385 [cs]},
+  keywords   = {Computer Science - Computer Vision and Pattern Recognition},
+  annotation = {Comment: Tech report},
+  file       = {Preprint PDF:C\:\\Users\\LEGION\\Zotero\\storage\\MWNYBFYW\\He et al. - 2015 - Deep Residual Learning for Image Recognition.pdf:application/pdf;Snapshot:C\:\\Users\\LEGION\\Zotero\\storage\\VGYEGZIF\\1512.html:text/html}
+}
+
+@inproceedings{farneback_2003,
+  title     = {Two-Frame Motion Estimation Based on Polynomial Expansion},
+  author    = {Farneb{\"a}ck, Gunnar},
+  booktitle = {Image Analysis: 13th Scandinavian Conference, SCIA 2003},
+  pages     = {363--370},
+  year      = {2003},
+  publisher = {Springer},
+  doi       = {10.1007/3-540-45103-X_50}
+}
+
+@techreport{jocher_yolov8_2023,
+  title       = {{Ultralytics YOLO}},
+  author      = {Jocher, Glenn and Chaurasia, Ayush and Qiu, Jing},
+  institution = {Ultralytics},
+  year        = {2023},
+  url         = {https://github.com/ultralytics/ultralytics},
+  note        = {Version 8.0.0}
+}
+
+@article{loshchilov_adamw_2019,
+  title      = {Decoupled Weight Decay Regularization},
+  author     = {Loshchilov, Ilya and Hutter, Frank},
+  journal    = {arXiv preprint arXiv:1711.05101},
+  year       = {2019},
+  url        = {https://arxiv.org/abs/1711.05101},
+  doi        = {10.48550/arXiv.1711.05101}
+}
+
+@inproceedings{deng_imagenet_2009,
+  title        = {{ImageNet}: A Large-Scale Hierarchical Image Database},
+  author       = {Deng, Jia and Dong, Wei and Socher, Richard and Li, Li-Jia and Li, Kai and Fei-Fei, Li},
+  booktitle    = {2009 IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
+  pages        = {248--255},
+  year         = {2009},
+  organization = {IEEE},
+  doi          = {10.1109/CVPR.2009.5206848}
+}
+
+@article{cao_openpose_2019,
+  author  = {Cao, Zhe and Hidalgo, Gines and Simon, Tomas and Wei, Shih-En and Sheikh, Yaser},
+  title   = {{OpenPose}: Realtime Multi-Person 2D Pose Estimation Using Part Affinity Fields},
+  journal = {IEEE Transactions on Pattern Analysis and Machine Intelligence},
+  volume  = {43},
+  number  = {1},
+  pages   = {172--186},
+  year    = {2021},
+  doi     = {10.1109/TPAMI.2019.2929257}
+}
+
+@inproceedings{yan_stgcn_2018,
+  author    = {Yan, Sijie and Xiong, Yuanjun and Lin, Dahua},
+  title     = {Spatial Temporal Graph Convolutional Networks for Skeleton-Based Action Recognition},
+  booktitle = {Proceedings of the AAAI Conference on Artificial Intelligence},
+  volume    = {32},
+  number    = {1},
+  year      = {2018},
+  doi       = {10.1609/aaai.v32i1.12328}
+}
+
+@article{sernani_gcn_violence_2021,
+  author  = {Sernani, Paolo and Falcionelli, Nicola and Tomassini, Selene and Contardo, Paolo and Dragoni, Aldo Franco},
+  title   = {Deep Learning for Automatic Violence Detection: Tests on the {AIRTLab} Dataset},
+  journal = {IEEE Access},
+  volume  = {9},
+  pages   = {160580--160595},
+  year    = {2021},
+  doi     = {10.1109/ACCESS.2021.3131315}
+}
+
+@inproceedings{soliman_violence_2019,
+  title     = {Violence Recognition from Videos using Deep Learning Techniques},
+  author    = {Soliman, Mohamed M. and Kamal, Mohamed H. and Nashed, Mohamed A. El-Sayed and Mostafa, Youssef M. and Chawky, Bothina S. and Khattab, Dina},
+  booktitle = {Proc. 9th International Conference on Intelligent Computing and Information Systems (ICICIS)},
+  pages     = {79--84},
+  year      = {2019},
+  address   = {Cairo, Egypt}
+}
