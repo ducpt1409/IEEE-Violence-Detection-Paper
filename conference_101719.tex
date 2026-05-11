@@ -354,15 +354,6 @@ We deliberately keep spatial and temporal modeling separate. Swin is pretrained 
 
 The cascade design has two practical benefits that build on each other. Because Stage~B only sees the filtered ROI subset, average GPU utilization per video stays well below what an unconstrained deep recognizer would need on every detected person-group crop. The spatial gating from Stage~A also gives Stage~B a cleaner input distribution: clips that arrive here have already passed a kinematic sanity check, so the easy non-violent samples are gone and the deep classifier can spend its capacity on the truly ambiguous cases.
 
-\begin{figure*}[!t]
-\centering
-\includegraphics[width=0.9\linewidth, height=0.35\textheight, keepaspectratio]{image/violance.png}\\[0.3em]
-{\small (a) A localized violent interaction in daylight.}\\[0.8em]
-\includegraphics[width=0.9\linewidth, height=0.35\textheight, keepaspectratio]{image/violance_night.jpg}\\[0.3em]
-{\small (b) A similar violent interaction occurring under low-light nighttime conditions.}
-\caption{Sample 16-frame sequences from the PTIT Violence Detection Dataset. (a) A localized violent interaction in daylight. (b) A similar violent interaction occurring under low-light nighttime conditions, demonstrating the robustness of the tracking stage.}
-\label{fig:unified_samples}
-\end{figure*}
 
 \section{Experimental Results}
 
@@ -372,12 +363,24 @@ We built this framework with real CCTV footage in mind, not the cleaner clips th
 
 The combined pool has 5,746 clips, split evenly between violent and non-violent classes. We did an 80/20 stratified split at the clip level and trained on 4,597 of them. The held-out 20\% from each source were merged into a single test set we refer to as the Unified Violence Surveillance Benchmark, which contains 1,149 clips. As illustrated in Fig.~\ref{fig:example_dataset}, these samples cover diverse real-world scenarios, including various lighting conditions, camera angles, and crowd densities.
 
-\begin{figure*}[!t]
+\begin{figure*}[p]
     \centering
     \includegraphics[width=\linewidth, height=0.8\textheight, keepaspectratio]{image/example_dataset.png}
     \caption{Representative frame samples from the Unified Violence Surveillance Benchmark. The dataset aggregates footage from six sources to capture real-world surveillance challenges, including diverse camera angles, lighting conditions, and complex crowd dynamics.}
     \label{fig:example_dataset}
 \end{figure*}
+
+\begin{figure*}[p]
+\centering
+\includegraphics[width=0.9\linewidth, height=0.35\textheight, keepaspectratio]{image/violance.png}\\[0.3em]
+{\small (a) A localized violent interaction in daylight.}\\[0.8em]
+\includegraphics[width=0.9\linewidth, height=0.35\textheight, keepaspectratio]{image/violance_night.jpg}\\[0.3em]
+{\small (b) A similar violent interaction occurring under low-light nighttime conditions.}
+\caption{Sample 16-frame sequences from the PTIT Violence Detection Dataset. (a) A localized violent interaction in daylight. (b) A similar violent interaction occurring under low-light nighttime conditions, demonstrating the robustness of the tracking stage.}
+\label{fig:unified_samples}
+\end{figure*}
+
+
 
 \begin{table}[!htbp]
 \centering
@@ -437,6 +440,7 @@ VID18 & 1024$\times$576 & 03:27 & Crowded scene & Non-Violent \\
 \end{table}
 
 Figure~\ref{fig:unified_samples} displays raw 16-frame sequences extracted from the PTIT Violence Detection Dataset test partition. The figure highlights how the system processes localized violent interactions across drastically different environmental conditions. The top sequence depicts an altercation during daylight, while the bottom sequence shows a similar altercation occurring under low-light nighttime conditions. These specific samples demonstrate the robustness of the kinematic tracking stage and the deep spatial-temporal feature extraction, which successfully maintain detection accuracy even when lighting and visibility degrade.
+
 
 \subsection{Implementation Details}
 We ran every experiment on a single workstation: an NVIDIA RTX 2080~Ti (11~GB) paired with an Intel Core i9-10900K and 32~GB of system RAM, on Windows~11 Pro 64-bit. This is roughly the price/performance band a small-to-medium CCTV deployment can afford, so the latency numbers we report should be representative of what an actual operator would see.
