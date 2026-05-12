@@ -30,14 +30,19 @@
 \title{A Multi-Stage Violence Detection Framework for CCTV Surveillance Using Swin Transformer and Temporal Transformer}
 
 \author{
-    \textbf{1. Hà Như Thái}, \textbf{2. Phạm Tiến Đức}, \textbf{3. Nguyễn Minh Đức}, \textbf{4. Lê Hữu Chính}\\
-    \vspace{0.2cm}
-    \textit{Posts and Telecommunications Institute of Technology}\\
-    Hanoi, Vietnam\\
-    \vspace{0.2cm}
-    \small
-    nhuthai1510@gmail.com, ducpt@ptit.edu.vn, \\
-    duc.bc2005@gmail.com, chinh.lh54@gmail.com
+\IEEEauthorblockN{Nhu Thai Ha\textsuperscript{1},
+Tien Duc Pham\textsuperscript{2},
+Minh Duc Nguyen\textsuperscript{3},
+Huu Chinh Le\textsuperscript{4},
+Manh Dung Nguyen\textsuperscript{5,*}}
+\IEEEauthorblockA{\textit{Posts and Telecommunications Institute of Technology} \\
+Hanoi, Vietnam \\
+\textsuperscript{1}nhuthai1510@gmail.com,
+\textsuperscript{2}ducpt@ptit.edu.vn,
+\textsuperscript{3}duc.bc2005@gmail.com, \\
+\textsuperscript{4}chinh.lh54@gmail.com,
+\textsuperscript{5}dungnm1@ptit.edu.vn \\
+\textsuperscript{*}Corresponding author: Manh Dung Nguyen (dungnm1@ptit.edu.vn)}
 }
 
 \maketitle
@@ -47,7 +52,7 @@ Most multi-stage violence detection systems for CCTV streams still rely on CNN�
 
 This paper describes a two-stage framework that we built to address those issues directly. The first stage is a lightweight kinematic filter: we group tracked persons by an adaptive proximity rule, compute seven hand-crafted motion features over a short sliding window, and use an SVM to drop most of the non-violent traffic before any deep model is invoked. The second stage handles the harder cases. We crop the candidate region of interest, feed the 16-frame clip into a Swin Transformer for per-frame spatial encoding, and aggregate the resulting tokens with a small Temporal Transformer instead of a recurrent layer. The two stages share a single goal: send the deep model only the frames it actually needs to look at.
 
-On a unified benchmark of 5,746 clips drawn from six public sources plus our own PTIT footage, the full pipeline reaches 91.2\% accuracy and 91.4\% F1, while running at roughly 24 FPS on a single RTX 2080 Ti. Compared to the CNN–LSTM and attention-based baselines we re-trained under matched conditions, the gain comes mostly from the kinematic gating, which removes obvious negatives before they reach the Transformer.
+On a unified benchmark of 5,746 clips drawn from six sources, five public datasets plus our own PTIT footage, the full pipeline reaches 91.2\% accuracy and 91.4\% F1, while sustaining about 53 FPS on a single RTX 2080 Ti. Compared to the CNN–LSTM and attention-based baselines we re-trained under matched conditions, the gain comes mostly from the kinematic gating, which removes obvious negatives before they reach the Transformer.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -211,12 +216,7 @@ of all temporal window samples, most of which correspond to stationary or low-mo
 
 The $V_{raw}$ vectors that survive the physics filter are subsequently normalized before classification. The components of $V_{raw}$ span very different scales ($A_{max}$ can reach several hundred, while $\sigma_{heat}$ typically fluctuates between 0 and 5), so we apply zero-mean unit-variance normalization (StandardScaler) independently to each feature dimension. This step is critical for the downstream SVM with an RBF kernel, whose decision boundary depends on Euclidean distances between data points; without normalization, high-magnitude features would dominate the classification outcome.
 
-To train the SVM pre-classifier, we construct a dedicated training set from Stage~A pipeline outputs. Specifically, the complete set of training videos (both violent and non-violent) is processed through YOLOv8~\cite{jocher_yolov8_2023} detection, DeepSORT~\cite{wojke_simple_2017} tracking, adaptive grouping, and micro-physical feature extraction. This process yields 4{,}250 
-seven-dimensional $V_{raw}$ samples, each corresponding to a single 10-frame sliding window of a particular interaction group at a specific time instant in the video stream. Labels are inherited from the source video: a sample is labeled positive (\textit{violent}) if the source video is annotated as violent and the group under consideration is involved in the violent interaction during the corresponding time span; all remaining samples are labeled negative (\textit{non-violent}). To verify labeling quality, we manually inspect a random subset of 500 
-samples and confirm a labeling accuracy of 96.8\%.
-The final SVM dataset comprises 1{,}870 
-positive and 2{,}380 
-negative samples, reflecting the natural class imbalance in surveillance footage where the majority of temporal windows correspond to normal activity. This dataset is partitioned using a stratified 80/20 split, with 80\% allocated to training and hyperparameter optimization and 20\% reserved for independent evaluation.
+The SVM has its own training set, separate from the deep model. We run the full training-video pool (both violent and non-violent) through YOLOv8~\cite{jocher_yolov8_2023}, DeepSORT~\cite{wojke_simple_2017}, the adaptive grouping step, and the micro-physical feature extractor described above. This pass produces 4{,}250 seven-dimensional $V_{raw}$ vectors, one per 10-frame sliding window per interaction group. We propagate labels from the source clip: a window is positive if the source clip is annotated as violent and the group is part of that violent interaction during the corresponding time span; otherwise the window is negative. We spot-check 500 random samples by hand and find a label accuracy of 96.8\%, which is consistent with the noise level we would expect from this kind of weak propagation. The resulting set has 1{,}870 positive and 2{,}380 negative windows, mirroring the imbalance one sees in real surveillance feeds. We then take a stratified 80/20 split: 80\% for training and grid search, 20\% held out for the per-class metrics in Table~\ref{tab:svm_performance}.
 
 The normalized vectors are classified by a Support Vector Machine (SVM) with a Radial Basis Function (RBF) kernel, defined as:
 \begin{equation}
@@ -225,12 +225,12 @@ K(x_i, x_j) = \exp\bigl(-\gamma \|x_i - x_j\|^2\bigr)
 \end{equation}
 
 \noindent We picked SVM-RBF~\cite{cortes_svm_1995} for this gating step over alternatives like a small MLP or a tree ensemble. The feature space here is only 7-dimensional, so we are not in a regime where deep learning has any advantage. The RBF kernel handles the nonlinear separation between violent and non-violent windows well in our experiments. And SVM inference is essentially free at our feature size: a few dot products against the support vectors cost less than 1~ms per window, which is invisible inside a 30~FPS pipeline. The two key hyperparameters, the penalty coefficient $C$ and the kernel parameter $\gamma$, are optimized via grid search combined with 5-fold stratified cross-validation on the training partition. The search space covers $C \in \{0.1, 1, 10, 100\}$ and $\gamma \in \{\texttt{scale}, \texttt{auto}, 0.01, 0.1, 1\}$. The optimal configuration is found at $C = 10$
-and $\gamma = \texttt{scale}$, 
-achieving a cross-validation accuracy of 74.8\%. 
+and $\gamma = \texttt{scale}$,
+with a cross-validation accuracy of 74.8\% measured at the default decision threshold during hyperparameter search. Table~\ref{tab:svm_performance} reports the per-class breakdown on the held-out 20\% validation set after the decision threshold is shifted toward recall (discussed below), which is why its summed accuracy is lower than the 74.8\% CV figure.
 
 \begin{table}[!htbp]
 \centering
-\caption{SVM pre-classifier performance on the held-out validation set}
+\caption{SVM pre-classifier performance at the \textbf{window level} on the held-out 20\% of the 4{,}250 $V_{raw}$ vectors (850 windows). Clip-level metrics for Stage~A as a whole appear in Table~\ref{tab:ablation}.}
 \label{tab:svm_performance}
 \begin{tabular}{lccc}
 \hline
@@ -252,7 +252,7 @@ of the candidates to Stage~B for deep analysis. The SVM is therefore mainly a re
 
 For deployment, the metric that actually matters is video-level coverage: does every violent source video produce at least one window that reaches Stage~B? On the training partition (used here as a forwarding-rate diagnostic rather than as a classification benchmark), Stage~A forwards at least one candidate window for \textbf{96.2\%} of the violent source videos. Fewer than 4\% of violent events are silently filtered out before the deep recognizer ever sees them. The 3.8\% we lose are mostly slow-escalation scenarios where neither $A_{max}$ nor $\mu_{heat}$ crosses the physics-based thresholds inside any 10-frame window. We acknowledge this failure mode in the Limitations section. Note that the 77.3\% clip-level SVM recall and the 96.2\% video-level forwarding rate are consistent: each violent video typically contains many sliding windows, so missing some of them individually does not stop at least one valid candidate from reaching the deep recognizer.
 
-The output of Stage~A is a set of flagged temporal windows, each associated with a specific interaction group and timestamp. For each flagged window, we extract the corresponding group's ROI by computing the union bounding box of all tracked individuals within that group, padded by 15\% to preserve peripheral context. A clip of $T = 16$ consecutive frames is then sampled uniformly from a temporal neighborhood extending slightly beyond the original 10-frame analysis window, capturing both the preceding approach phase and the subsequent aftermath. Each frame is cropped to the ROI region and resized to $224 \times 224$ pixels. This clip constitutes the input to Stage~B. By construction, Stage~B processes only the filtered, high-risk candidates rather than the full video stream, inheriting the computational savings established by Stage~A's early elimination of approximately 67\% of all temporal windows.
+The output of Stage~A is a set of flagged temporal windows, each tied to a specific interaction group and timestamp. For each flagged window we build the group's ROI as the union bounding box over the tracked individuals inside the group, padded by 15\% to keep some peripheral context. From that ROI we sample $T = 16$ consecutive frames uniformly across a temporal neighborhood that extends slightly past the original 10-frame analysis window, so the clip captures both the approach and the immediate aftermath. Each frame is cropped to the ROI and resized to $224 \times 224$~px. This clip is the input to Stage~B.
 
 \subsection{ROI-based Swin–Temporal Transformer}
 Stage~A reduces the candidate pool by rejecting interactions with insufficient kinematic evidence, but it cannot tell genuinely violent events apart from confounding activities that share similar motion signatures, such as abrupt physical contact in sports, animated celebrations, or forceful greetings. These ambiguous cases need a spatial and temporal understanding of body posture, relative movement, and interaction dynamics that handcrafted kinematic descriptors cannot provide. Stage~A operates on optical-flow-derived statistics that capture gross motion intensity. Stage~B instead processes raw RGB frames so that appearance-level cues (facial expressions, body posture, object interactions) are available to the classifier. Concretely, Stage~B applies an ROI-based Swin Transformer~\cite{9710580} for hierarchical spatial encoding of the candidate region, followed by a Temporal Transformer encoder for clip-level violence recognition.
@@ -366,7 +366,7 @@ The combined pool has 5,746 clips, split evenly between violent and non-violent 
 \begin{figure*}[p]
     \centering
     \includegraphics[width=\linewidth, height=0.8\textheight, keepaspectratio]{image/example_dataset.png}
-    \caption{Representative frame samples from the Unified Violence Surveillance Benchmark. The dataset aggregates footage from six sources to capture real-world surveillance challenges, including diverse camera angles, lighting conditions, and complex crowd dynamics.}
+    \caption{Representative violent frames drawn from all six sources of the Unified Violence Surveillance Benchmark. The grid covers outdoor brawls and street fights (RWF-2000), sports altercations (Hockey Fight), indoor and close-range confrontations (RLVS), parking-lot and vehicle-area incidents (Auto Violence Detection), staged movie scenes (Movies V/N-V), and corridor/CCTV footage from our own PTIT dataset. Camera angle, lighting, resolution, and crowd density vary widely across the grid, which is the kind of distribution shift any deployed CCTV detector has to handle.}
     \label{fig:example_dataset}
 \end{figure*}
 
@@ -376,7 +376,7 @@ The combined pool has 5,746 clips, split evenly between violent and non-violent 
 {\small (a) A localized violent interaction in daylight.}\\[0.8em]
 \includegraphics[width=0.9\linewidth, height=0.35\textheight, keepaspectratio]{image/violance_night.jpg}\\[0.3em]
 {\small (b) A similar violent interaction occurring under low-light nighttime conditions.}
-\caption{Sample 16-frame sequences from the PTIT Violence Detection Dataset. (a) A localized violent interaction in daylight. (b) A similar violent interaction occurring under low-light nighttime conditions, demonstrating the robustness of the tracking stage.}
+\caption{Two 16-frame sequences from the PTIT dataset: (a) a localized fight in daylight; (b) a comparable fight under low-light night conditions. Both sequences are processed by the same pipeline configuration, which lets us check how the tracker and the deep recognizer behave when illumination drops.}
 \label{fig:unified_samples}
 \end{figure*}
 
@@ -439,7 +439,7 @@ VID18 & 1024$\times$576 & 03:27 & Crowded scene & Non-Violent \\
 }
 \end{table}
 
-Figure~\ref{fig:unified_samples} displays raw 16-frame sequences extracted from the PTIT Violence Detection Dataset test partition. The figure highlights how the system processes localized violent interactions across drastically different environmental conditions. The top sequence depicts an altercation during daylight, while the bottom sequence shows a similar altercation occurring under low-light nighttime conditions. These specific samples demonstrate the robustness of the kinematic tracking stage and the deep spatial-temporal feature extraction, which successfully maintain detection accuracy even when lighting and visibility degrade.
+Figure~\ref{fig:unified_samples} shows two raw 16-frame sequences from the PTIT test partition. The top sequence is a daytime fight; the bottom sequence is a similar fight at night under low light. We picked these two to make a direct comparison: same camera type, same kind of altercation, only the illumination differs. In our experience this is where full-frame CNN baselines start to fail, since their feature maps degrade with poor lighting. Stage~A still tracks the participants in both clips, and Stage~B classifies both correctly.
 
 
 \subsection{Implementation Details}
@@ -453,7 +453,7 @@ Optimization uses AdamW~\cite{loshchilov_adamw_2019} with an initial learning ra
 
 \subsection{Quantitative Results}
 
-We evaluated the full two-stage pipeline on all 1,149 held-out test clips. The system reaches 91.2\% accuracy, 89.7\% precision, 93.0\% recall, and 91.4\% F1. AUC-ROC is 92.04\% (Fig.~\ref{fig:evaluation_metrics}(a)) and AUC-PR is 89.53\%, so the class separation holds up across operating thresholds, not just at the chosen one.
+We evaluated the full two-stage pipeline on all 1,149 held-out test clips. The system reaches 91.2\% accuracy, 89.8\% precision, 93.0\% recall, and 91.4\% F1. AUC-ROC is 92.04\% (Fig.~\ref{fig:evaluation_metrics}(a)) and AUC-PR is 89.53\%, so the class separation holds up across operating thresholds, not just at the chosen one.
 
 Fig.~\ref{fig:evaluation_metrics}(b) details the per-class breakdown. Of 574 non-violent test clips, 513 were correctly rejected (TN = 89.4\%) and 61 generated false alarms (FP = 10.6\%). For the 575 violent clips, 535 were correctly detected (TP = 93.0\%) while 40 were missed (FN = 7.0\%). The low false-negative count is partly because the Temporal Transformer captures short approach-contact-recoil sequences over the 16-frame window, patterns that frame-level or recurrent classifiers miss when the decisive action spans only a few frames. The remaining false positives come from hard-negative segments (crowd surges, contact sports, close-range physical greetings) where the kinematic signature briefly looks like real violence and Stage~A conservatively forwards the clip to Stage~B.
 
@@ -469,7 +469,7 @@ Fig.~\ref{fig:evaluation_metrics}(b) details the per-class breakdown. Of 574 non
 
 The FP/FN asymmetry (61 vs.\ 40) is an intentional outcome of how we calibrate Stage~A's thresholds. In real surveillance, a missed violent event is much more costly than a spurious alert that an operator can dismiss in seconds. Stage~A is therefore tuned conservatively so that boundary-case groups get forwarded to Stage~B instead of being silently dropped.
 
-Table~\ref{tab:latency} presents a component-wise latency breakdown measured on the RTX~2080~Ti. Stage~A components (YOLOv8, DeepSORT, optical flow, SVM) process every incoming frame in $\sim$18~ms (about 55~FPS) and run continuously. Stage~B is triggered only for the filtered candidate subset, averaging 41.72~ms per 16-frame clip. Across the test set, Stage~B activates for an average of 2.1~ROI clips per video. For a typical 30~FPS source stream lasting around 5~seconds (150 frames), the amortized Stage~B contribution is approximately $2.1 \times 41.72 / 150 \approx 0.58$~ms per CCTV frame. The effective per-frame latency is therefore Stage~A~($\sim$18~ms) plus the amortized Stage~B overhead ($\sim$18.6~ms total), yielding a highly efficient sustained throughput of \textbf{53~FPS} on a continuous CCTV stream. Even under worst-case continuous violent interactions, the system maintains real-time performance at \textbf{48~FPS}.
+Table~\ref{tab:latency} presents a component-wise latency breakdown measured on the RTX~2080~Ti. Stage~A components (YOLOv8, DeepSORT, optical flow, SVM) process every incoming frame in $\sim$18~ms (about 55~FPS) and run continuously. Stage~B is triggered only for the filtered candidate subset, averaging 41.72~ms per 16-frame clip. Across the test set, Stage~B activates for an average of 2.1~ROI clips per video. For a typical 30~FPS source stream lasting around 5~seconds (150 frames), the amortized Stage~B contribution is $2.1 \times 41.72 / 150 \approx 0.58$~ms per CCTV frame. The effective per-frame latency is therefore Stage~A~($\sim$18~ms) plus the amortized Stage~B overhead, yielding a sustained throughput of \textbf{53~FPS} on a continuous CCTV stream, well above the 30~FPS that most CCTV cameras produce. Under heavier violent-event load the throughput drops to about \textbf{48~FPS}, which still leaves headroom over the source frame rate.
 
 \begin{table}[!htbp]
 \centering
@@ -502,7 +502,7 @@ We investigate each pipeline component through a controlled ablation, keeping th
 
 \begin{table}[!htbp]
 \centering
-\caption{Ablation study results on the validation set (1149 clips)}
+\caption{Ablation study at the \textbf{clip level} on the 1{,}149-clip Unified Benchmark test set. For \textit{Stage~A Only}, a clip is predicted violent if any of its sliding windows passes the physics threshold and is then classified violent by the SVM.}
 \label{tab:ablation}
 \resizebox{\columnwidth}{!}{%
 \begin{tabular}{lcccc}
@@ -512,13 +512,13 @@ We investigate each pipeline component through a controlled ablation, keeping th
 Stage A Only (SVM) & 78.3 & 76.1 & 82.4 & 79.1 \\
 Swin Only (Frame-level) & 87.19 & 84.80 & 90.62 & 87.61 \\
 Stage B w/o Stage A & 89.2 & 86.5 & 91.8 & 89.1 \\
-\textbf{Full Pipeline (A+B)} & \textbf{91.2} & \textbf{89.7} & \textbf{93.0} & \textbf{91.4} \\
+\textbf{Full Pipeline (A+B)} & \textbf{91.2} & \textbf{89.8} & \textbf{93.0} & \textbf{91.4} \\
 \hline
 \end{tabular}%
 }
 \end{table}
 
-Stage~A alone achieves 82.4\% recall at 76.1\% precision. The gap is largely expected: momentum and directional entropy capture high-energy interactions well but cannot separate genuine violence from contact sports or aggressive play that share similar physical signatures. The SVM operates in a compact feature space with no spatial or contextual awareness, so it reaches a natural ceiling in visually complex scenes.
+Stage~A alone achieves 82.4\% recall at 76.1\% precision. These clip-level numbers differ from the per-window SVM metrics in Table~\ref{tab:svm_performance} for two reasons: clip aggregation only requires one surviving window per video (so recall rises above the 77.3\% window-level recall), and the physics-based threshold removes most clearly non-violent windows before the SVM is queried (so the precision floor is higher than the 60.5\% window-level precision). The remaining gap to the full pipeline is largely expected: momentum and directional entropy capture high-energy interactions well but cannot separate genuine violence from contact sports or aggressive play that share similar physical signatures. The SVM operates in a compact feature space with no spatial or contextual awareness, so it reaches a natural ceiling in visually complex scenes.
 
 Adding per-frame Swin encoding without any temporal context (\textit{Swin Only}) raises accuracy to 87.19\%. Spatial features resolve many per-frame ambiguities, but clips where violence builds up gradually (through an escalation pattern that no single frame captures cleanly) stay problematic. Frame-level decisions cannot see this kind of temporal structure.
 
@@ -585,14 +585,14 @@ CNN-LSTM~\cite{patel_realtime_2021} scores 82.4\% accuracy. Recurrent temporal e
 
 The structural advantage of our pipeline is that Stage~A gates the input spatially before any deep inference is triggered. ROIs reaching Stage~B have already passed a kinematic sanity check, so the input is cleaner and more focused. This gating reduces the feature-level confusion that full-frame models hit and accounts for most of the performance gap visible in Table~\ref{tab:sota}.
 
-The framework achieves 93.0\% recall with precision held at 89.7\%. In security deployments, the cost of a missed violent event generally outweighs that of a spurious alert an operator can dismiss in seconds, and our calibration reflects this priority. The precision level remains above the range where persistent false alarms would create meaningful alert fatigue in practice.
+The framework reaches 93.0\% recall at 89.8\% precision, an asymmetry we set on purpose for the reasons explained in Section~IV-C. Precision still sits high enough that an operator is not flooded with spurious alerts, which is the usual failure mode that drives alert fatigue in deployed systems.
 
-In terms of throughput, Stage~B averages 41.72~ms per 16-frame clip on the RTX~2080~Ti. Combined with Stage~A's $\sim$18~ms per frame and the fact that Stage~B only fires on a small candidate subset, the end-to-end pipeline sustains roughly 53.8~FPS on a continuous feed, which significantly outperforms the baselines we tested and is highly suitable for real-time deployment. Because Stage~B is bypassed entirely for candidates rejected by Stage~A, actual system throughput is much higher than the isolated Stage~B per-clip figure suggests.
+In terms of throughput, Stage~B averages 41.72~ms per 16-frame clip on the RTX~2080~Ti. Combined with Stage~A's $\sim$18~ms per frame and the fact that Stage~B only fires on a small candidate subset, the end-to-end pipeline sustains about 53~FPS on a continuous feed, which is well above the 30~FPS that most CCTV cameras produce and faster than every baseline we re-trained on the same hardware. Even under heavy violent-event load, where Stage~B fires more often, the throughput only drops to around 48~FPS.
 
 
 \section{Conclusion}
 
-We presented a two-stage violence detection pipeline that we built around one main idea: the deep model should not see frames it does not need to see. Stage~A is a cheap kinematic filter (adaptive proximity grouping, 7-dimensional motion descriptor, RBF-SVM gatekeeper) that drops about two thirds of the candidate windows before any GPU work begins. Stage~B is a Swin Transformer spatial encoder followed by a small Temporal Transformer, applied only to the surviving ROI clips. On a unified benchmark of 1,149 held-out clips taken from six public datasets and our own PTIT footage, the full system reaches 91.2\% accuracy, 91.4\% F1, and 92.04\% AUC-ROC at roughly 53.8~FPS on a single RTX~2080~Ti.
+We presented a two-stage violence detection pipeline that we built around one main idea: the deep model should not see frames it does not need to see. Stage~A is a cheap kinematic filter (adaptive proximity grouping, 7-dimensional motion descriptor, RBF-SVM gatekeeper) that drops about two thirds of the candidate windows before any GPU work begins. Stage~B is a Swin Transformer spatial encoder followed by a small Temporal Transformer, applied only to the surviving ROI clips. On a unified benchmark of 1,149 held-out clips taken from six sources (five public datasets plus our own PTIT footage), the full system reaches 91.2\% accuracy, 91.4\% F1, and 92.04\% AUC-ROC at about 53~FPS on a single RTX~2080~Ti.
 
 \vspace{0.15cm}
 \noindent\textbf{Limitations.} The framework still has several blind spots that we want to flag for anyone considering deployment.
