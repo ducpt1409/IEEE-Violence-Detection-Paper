@@ -124,7 +124,7 @@ T_{adaptive} = K \times \frac{H_i + H_j}{2}
 \label{eq:adaptive_threshold}
 \end{equation}
 
-\noindent where $H_i$, $H_j$ are the bounding-box heights of the two persons. We use height (not width or area) because under perspective, height scales most cleanly with depth: a person twice as far from the camera appears roughly half as tall, while width also varies with body pose. The rule is self-calibrating in practice: distant subjects produce small boxes and small thresholds, nearby subjects produce large ones, and what counts as "close enough to interact" stays consistent regardless of where the person stands in the frame.
+\noindent where $H_i$ and $H_j$ are the bounding-box heights (in pixels) of persons $i$ and $j$ at the current frame, and $K > 0$ is a scaling factor that controls how generous the rule is: a smaller $K$ produces tighter thresholds and rejects more pairs, while a larger $K$ groups more aggressively. We use $K = 1.50$ across all experiments; the sensitivity sweep in Section~IV-E confirms that this value sits at the F1 peak. We use height (not width or area) because under perspective, height scales most cleanly with depth: a person twice as far from the camera appears roughly half as tall, while width also varies with body pose. The rule is self-calibrating in practice: distant subjects produce small boxes and small thresholds, nearby subjects produce large ones, and what counts as "close enough to interact" stays consistent regardless of where the person stands in the frame.
 
 \begin{figure}[!htbp]
     \centering
@@ -163,30 +163,31 @@ v_t = \frac{\sqrt{(x_t - x_{t-1})^2 + (y_t - y_{t-1})^2}}{H_t} \times \text{FPS}
 \label{eq:velocity}
 \end{equation}
 
-\noindent We compute the per-frame acceleration $a_t$ and the movement direction angle $\theta_t$ the same way, and these three series feed the aggregation step below.
+\noindent In this equation, $(x_t, y_t)$ are the pixel coordinates of the bounding-box center for the tracked person at frame $t$; $H_t$ is the box height at the same frame; and FPS is the frame rate of the source video. The numerator $\sqrt{(x_t-x_{t-1})^2+(y_t-y_{t-1})^2}$ is the per-frame Euclidean displacement of the centroid in pixels. Dividing by $H_t$ makes the quantity scale-invariant under perspective: a person twice as far from the camera appears about half as tall, so the same body movement also covers half as many pixels, and the ratio stays roughly constant. Multiplying by FPS converts the unit from pixels-per-frame to body-lengths-per-second, so the metric is comparable across sources captured at $30$~FPS, $60$~FPS, or anything in between.
+
+From $v_t$ we derive the per-frame acceleration $a_t$ and the movement direction angle $\theta_t$:
+\begin{equation}
+a_t = (v_t - v_{t-1}) \times \mathrm{FPS}, \quad
+\theta_t = \arctan\!2\bigl(y_t - y_{t-1},\; x_t - x_{t-1}\bigr).
+\label{eq:accel_angle}
+\end{equation}
+
+\noindent The acceleration $a_t$ is a finite-difference approximation of the time derivative of $v_t$: the term $(v_t - v_{t-1})$ is the change in normalized velocity between consecutive frames, and the extra FPS factor converts the result from per-frame to per-second units. The resulting unit is body-lengths per second squared, which is also the unit of force per unit mass and is the quantity that actually matters when we look for impact events. The angle $\theta_t$ uses the two-argument $\arctan\!2(\Delta y, \Delta x)$ rather than the single-argument $\arctan(\Delta y / \Delta x)$ because the two-argument form returns the correct quadrant of motion in the full range $(-\pi, \pi]$; this matters for the directional-chaos statistic $S_{\mathrm{interaction}}$ defined in Section~III-A-4, which must distinguish two persons moving in opposite directions (a difference of $\pi$ in $\theta$) from two persons moving in the same direction (identical $\theta$).
+
+The three per-person series $\{v_t, a_t, \theta_t\}$ feed the aggregation step described in Section~III-A-4 below.
 
 \subsubsection{Visual Feature Extraction and Heatmap Representation}
 
 Bounding-box centroids capture how the whole body moves, but they miss the limb-level activity that often signals a fight: a thrown punch, a swung arm, a quick kick. To recover those signals we run Farneback dense optical flow~\cite{farneback_2003} between consecutive frames $I_{t-1}$ and $I_t$. We convert both frames to grayscale first because the optical-flow estimate only depends on intensity gradients and color channels add cost without helping accuracy.
 
-The flow estimate gives a motion vector $V = (u, v)$ at every pixel $(x, y)$, where $u$ and $v$ are the horizontal and vertical displacements. From this we build a single-channel "heatmap" by taking the magnitude:
+The flow estimate produces a motion vector $\bigl(u(x, y),\; v(x, y)\bigr)$ at every pixel $(x, y)$, where $u(x, y)$ is the horizontal displacement (in pixels) of the image content at pixel $(x, y)$ between frame $t-1$ and frame $t$, and $v(x, y)$ is the corresponding vertical displacement. From this vector field we build a single-channel "heatmap" by taking the per-pixel magnitude:
 
 \begin{equation}
-M(x, y) = \sqrt{u^2 + v^2}
+M(x, y) = \sqrt{u(x, y)^2 + v(x, y)^2}
 \label{eq:heatmap_magnitude}
 \end{equation}
 
-$M$ is a per-pixel motion-energy map: pixels where things are moving fast (punches, kicks, swinging limbs) are bright, pixels with static content (walls, parked objects) are near zero. Inside the ROI this gives us a localized motion picture that the box centroid alone cannot produce. Optical flow has a long history as a complementary motion cue in both action recognition~\cite{simonyan_two-stream_2014} and violence detection~\cite{gracia_fast_2015}, and we use it here in the same spirit.
-\begin{figure}[!htbp]
-    \centering
-    \includegraphics[width=\columnwidth]{image/heatmap_violence.jpeg}
-    \caption{Illustration of the combined physical and visual feature analysis for a detected violent interaction. The heatmap visualization demonstrates the spatial distribution of motion energy, with intense activity (red regions) concentrated in the altercation area while static background elements (walls, trees) are suppressed. The 7-dimensional feature vector $V_{raw}$ shows the typical signatures of violent behavior: maximum acceleration $A_{max}=74.42$ (about $5\times$ the safe threshold of $15.0$), interaction entropy $S_{interaction}=103.03^\circ$ indicating directional chaos, and elevated heatmap variance $\sigma_{heat}=2.96$ reflecting localized motion concentration.}
-    \label{fig:heatmap_analysis}
-\end{figure}
-
-Fig.~\ref{fig:heatmap_analysis} shows how the physical and visual descriptors line up on a real positive sample from our test set. The system flags Group~1, which contains two individuals (IDs 2 and 3) in an active fight. The heatmap behaves as expected: walls and vegetation in the background sit at $M \approx 0$ (blue), while the contact region between the two fighters lights up red. The resulting heatmap variance $\sigma_{heat}$ comes out at $2.96$, which is the kind of high-contrast localized signature we expect from a real altercation rather than from generic crowd motion.
-
-The 7-dimensional descriptor for this window confirms the visual reading. Mean velocity is already high ($\mu_v \approx 69.49$), but the more decisive number is the maximum acceleration $A_{max} = 74.42$, almost five times our $15.0$ threshold. That kind of spike corresponds to the jerk produced by a punch or kick rather than to steady running. The interaction entropy $S_{interaction} = 103.03^\circ$ is consistent with the same reading: the two subjects are moving in roughly opposing directions, not in parallel like pedestrians walking together. Taken together, these features cross the gating criteria and Stage~A forwards the window to the deep recognizer.
+\noindent $M(x, y)$ has the same spatial dimensions as the input frame and acts as a per-pixel motion-energy map: pixels where things are moving fast (punches, kicks, swinging limbs) have large $M$, while pixels with static content (walls, parked objects) have $M \approx 0$. Inside the ROI this gives us a localized motion picture that the box centroid alone cannot produce. Optical flow has a long history as a complementary motion cue in both action recognition~\cite{simonyan_two-stream_2014} and violence detection~\cite{gracia_fast_2015}, and we use it here in the same spirit.
 
 \subsubsection{Feature Vector Aggregation and Dynamic Analysis}
 A single frame rarely tells us whether a fight is happening; a punch is a sequence of acceleration, contact, and recoil that plays out over several frames. We therefore work in windows of $N = 10$ frames and reduce the per-frame physical signals inside each window to a small fixed-size summary. The summary we use is a 7-dimensional vector $V_{raw}$:
@@ -196,17 +197,50 @@ V_{raw} = [\mu_v, \sigma_v, \mu_a, A_{max}, S_{interaction}, \mu_{heat}, \sigma_
 \label{eq:feature_vector}
 \end{equation}
 
-\noindent Each component targets one specific aspect of how the group is moving:
+\noindent To define each component, let $\mathcal{G}$ denote the set of tracked persons in an interaction group, $\mathcal{W}$ the set of $N = 10$ consecutive frame indices in the sliding window, and $\mathcal{S} = \{(p, \tau) : p \in \mathcal{G}, \tau \in \mathcal{W}\}$ the set of all (person, frame) measurements taken in that window (so $|\mathcal{S}| = N \cdot |\mathcal{G}|$ when no tracks are missing). Let $\mathcal{R}$ be the pixel set of the group's ROI, which is the union of the bounding boxes of all members of $\mathcal{G}$ across the window, padded by $15\%$ to retain peripheral context. The seven components of $V_{raw}$ are then computed as
+\begin{equation}
+\begin{aligned}
+\mu_v &= \tfrac{1}{|\mathcal{S}|}\!\!\sum_{(p,\tau)\in\mathcal{S}}\!\! v_\tau^{(p)}, \\
+\sigma_v &= \sqrt{\tfrac{1}{|\mathcal{S}|}\!\!\sum_{(p,\tau)}\!\! \bigl(v_\tau^{(p)}-\mu_v\bigr)^{2}}, \\
+\mu_a &= \tfrac{1}{|\mathcal{S}|}\!\!\sum_{(p,\tau)}\!\! a_\tau^{(p)}, \quad
+A_{\max} = \!\!\max_{(p,\tau)\in\mathcal{S}}\!\! a_\tau^{(p)}, \\
+S_{\mathrm{interaction}} &= \mathrm{std}_{\mathrm{circ}}\!\bigl(\{\theta_\tau^{(p)}\}_{(p,\tau)\in\mathcal{S}}\bigr), \\
+\mu_{\mathrm{heat}} &= \tfrac{1}{|\mathcal{R}|}\!\!\sum_{(x,y)\in\mathcal{R}}\!\! M(x,y), \\
+\sigma_{\mathrm{heat}} &= \sqrt{\tfrac{1}{|\mathcal{R}|}\!\!\sum_{(x,y)}\!\! \bigl(M(x,y)-\mu_{\mathrm{heat}}\bigr)^{2}},
+\end{aligned}
+\label{eq:aggregation}
+\end{equation}
+
+\noindent where $v_\tau^{(p)}$, $a_\tau^{(p)}$, and $\theta_\tau^{(p)}$ are the per-frame quantities defined in Eq.~\ref{eq:velocity} and Eq.~\ref{eq:accel_angle} for person $p$ at frame $\tau$; $M(x, y)$ is the optical-flow magnitude from Eq.~\ref{eq:heatmap_magnitude}; and $\mathrm{std}_{\mathrm{circ}}(\cdot)$ denotes the circular standard deviation of an angle set. We use the circular variant because $\theta \in (-\pi, \pi]$ is cyclic: a linear standard deviation would label two nearly identical angles like $-179^\circ$ and $179^\circ$ as $358^\circ$ apart, when in fact they are only $2^\circ$ apart.
+
+Each of the seven components captures a distinct motion property. The choice of statistic for each component reflects a specific failure mode we wanted the descriptor to handle:
 
 \begin{itemize}
-    \item \textbf{Kinetic energy ($\mu_v, \sigma_v$):} We take the mean and standard deviation of normalized velocity. $\mu_v$ tracks the average energy of the group; a static group has $\mu_v \approx 0$. The mean alone is not enough though, because jogging and fighting can both register a high $\mu_v$. The standard deviation $\sigma_v$ captures the difference: violent motion is jerky (lunges followed by pauses), so $\sigma_v$ comes out much higher than for smooth, harmonic motion at the same speed.
+    \item \textbf{$\mu_v$ (mean normalized velocity):} the average kinetic energy of the group across the window. We use the arithmetic mean rather than the median or a per-person summary because at $|\mathcal{S}|$ on the order of $20$ to $50$ samples per window the mean is the most stable estimator. A high $\mu_v$ is necessary for violence (no one is fighting at $\mu_v \approx 0$) but it is not sufficient by itself, since a person running fast also has a high $\mu_v$. We therefore always pair it with $\sigma_v$.
 
-    \item \textbf{Impulse ($\mu_a, A_{max}$):} We put more weight on the maximum acceleration $A_{max}$ within the window than on the mean. Punches and kicks happen very quickly and produce a short acceleration spike that the mean tends to wash out, so $A_{max}$ is the more reliable signal for high-intensity impact. We keep $\mu_a$ as well because it provides a baseline against which $A_{max}$ can be compared.
+    \item \textbf{$\sigma_v$ (velocity standard deviation):} how steady the motion is. Walking and jogging produce near-constant $v_t$ values and a small $\sigma_v$; fighting follows a jerky pattern (lunge, pause, recoil), so $v_t$ swings widely and $\sigma_v$ rises. Together with $\mu_v$, this gives a two-dimensional subspace in which "fast and steady" (jogging) and "fast and jerky" (fighting) are linearly separable.
 
-    \item \textbf{Directional chaos ($S_{interaction}$):} The interaction entropy is the standard deviation of movement angles $\sigma_{\theta}$ across the group. People walking together or fleeing in the same direction produce nearly parallel velocity vectors, so $\sigma_{\theta}$ stays low. A brawl scatters directions: one person lunges forward, another recoils, a third falls. The angle spread shoots up. We use this entropy as our cheap proxy for "is the group moving coherently or not".
+    \item \textbf{$\mu_a$ (mean acceleration):} a single punch typically produces an acceleration spike of one sign followed by a recoil spike of the opposite sign, so $\mu_a$ tends to drift back toward zero. Used alone this feature is therefore weak. We keep it because the SVM can use it as a denominator for ratios like $A_{\max}/|\mu_a|$, which separate isolated impacts from sustained-high-acceleration regimes such as sports.
 
-    \item \textbf{Visual energy ($\mu_{heat}, \sigma_{heat}$):} Bounding-box motion misses limb-level activity, so we add an optical-flow heatmap on top. $\mu_{heat}$ aggregates the total flow magnitude inside the ROI, picking up small but fast movements (a thrown punch, a swinging arm) that the box centroid does not see. $\sigma_{heat}$ measures how concentrated that motion is in space: a punch creates a localized bright spot against a mostly dark background, which gives a high standard deviation.
+    \item \textbf{$A_{\max}$ (maximum acceleration in the window):} the impact signature of the descriptor. A typical punch or kick lasts only $2$ to $3$ frames inside a $10$-frame window, so any averaging dilutes the spike, but $\max$ preserves it. We use $\max$ rather than a $99$-percentile because at our sample size the max is already stable, and a top-$k$ estimator would require an extra hyperparameter for negligible gain. The physics filter (Section~III-A-5) gates a window through to the SVM whenever $A_{\max} > 15.0$.
+
+    \item \textbf{$S_{\mathrm{interaction}}$ (angular spread of motion directions):} the circular standard deviation of $\theta_\tau^{(p)}$ across the window. Coordinated motion (a crowd walking in step, several people fleeing in the same direction) clusters $\theta$ values around a single direction and gives a low $S_{\mathrm{interaction}}$; a brawl scatters $\theta$ across opposing directions and gives a high value. We call this statistic "entropy" by analogy with information-theoretic spread, although the underlying computation is circular standard deviation rather than Shannon entropy.
+
+    \item \textbf{$\mu_{\mathrm{heat}}$ (average optical-flow magnitude over the ROI):} the bounding-box centroid is a single point per person per frame and cannot see a thrown punch that barely shifts the body center. Averaging $M(x, y)$ over the ROI pixels recovers this limb-level motion. The physics filter also gates on $\mu_{\mathrm{heat}} > 2.0$, OR'd with the $A_{\max}$ condition above, so a window with strong limb motion is forwarded even when the centroid-level acceleration is moderate.
+
+    \item \textbf{$\sigma_{\mathrm{heat}}$ (spatial concentration of motion):} a vehicle passing through the ROI produces a high $\mu_{\mathrm{heat}}$ but distributes motion fairly uniformly across the pixels, so $\sigma_{\mathrm{heat}}$ stays low. A punch concentrates motion at one location against a mostly static background, so $\sigma_{\mathrm{heat}}$ rises. The pair $(\mu_{\mathrm{heat}}, \sigma_{\mathrm{heat}})$ therefore separates "lots of uniform motion" (low-risk) from "concentrated motion bursts" (high-risk).
 \end{itemize}
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=\columnwidth]{image/heatmap_violence.jpeg}
+    \caption{Illustration of the combined physical and visual feature analysis on a real positive sample from the test set. The heatmap visualizes the spatial distribution of motion energy: intense activity (red) concentrates in the altercation area while static background elements (walls, trees) are suppressed. The $V_{raw}$ descriptor for this window shows the typical signatures of violent behavior: $A_{max}=74.42$ (about $5\times$ the physics threshold of $15.0$), $S_{interaction}=103.03^\circ$ indicating high directional chaos, and $\sigma_{heat}=2.96$ reflecting localized motion concentration.}
+    \label{fig:heatmap_analysis}
+\end{figure}
+
+Fig.~\ref{fig:heatmap_analysis} shows the seven components on a real positive sample from our test set. The system flags Group~1, which contains two individuals (IDs 2 and 3) in an active fight. The heatmap looks the way we want it to: walls and vegetation in the background sit at $M \approx 0$ (blue), while the contact region between the two fighters lights up red. The resulting $\sigma_{heat} = 2.96$ is the kind of high-contrast localized signature we expect from a real altercation rather than from generic crowd motion.
+
+The numeric descriptor for this window confirms the visual reading. The mean velocity is already high ($\mu_v \approx 69.49$), but the more decisive number is the maximum acceleration $A_{max} = 74.42$, almost five times the physics-filter threshold of $15.0$. That kind of spike corresponds to the jerk produced by a punch or kick rather than to steady running. The interaction entropy $S_{interaction} = 103.03^\circ$ is consistent with the same reading: the two subjects are moving in roughly opposing directions, not in parallel like pedestrians walking together. Taken together, these features cross the gating criteria and Stage~A forwards the window to the deep recognizer.
 
 
 \subsubsection{Filtering Mechanism and Early Classification}
@@ -224,7 +258,7 @@ K(x_i, x_j) = \exp\bigl(-\gamma \|x_i - x_j\|^2\bigr)
 \label{eq:rbf_kernel}
 \end{equation}
 
-\noindent We picked SVM-RBF~\cite{cortes_svm_1995} for this gating step over alternatives like a small MLP or a tree ensemble. The feature space here is only 7-dimensional, so we are not in a regime where deep learning has any advantage. The RBF kernel handles the nonlinear separation between violent and non-violent windows well in our experiments. And SVM inference is essentially free at our feature size: a few dot products against the support vectors cost less than 1~ms per window, which is invisible inside a 30~FPS pipeline. The two key hyperparameters, the penalty coefficient $C$ and the kernel parameter $\gamma$, are optimized via grid search combined with 5-fold stratified cross-validation on the training partition. The search space covers $C \in \{0.1, 1, 10, 100\}$ and $\gamma \in \{\texttt{scale}, \texttt{auto}, 0.01, 0.1, 1\}$. The optimal configuration is found at $C = 10$
+\noindent where $x_i, x_j \in \mathbb{R}^7$ are two normalized $V_{raw}$ feature vectors (the input to the SVM), $\|x_i - x_j\|$ is their Euclidean distance, and $\gamma > 0$ is a kernel-width hyperparameter that controls how quickly the similarity drops with distance. We picked SVM-RBF~\cite{cortes_svm_1995} for this gating step over alternatives like a small MLP or a tree ensemble. The feature space here is only 7-dimensional, so we are not in a regime where deep learning has any advantage. The RBF kernel handles the nonlinear separation between violent and non-violent windows well in our experiments. And SVM inference is essentially free at our feature size: a few dot products against the support vectors cost less than 1~ms per window, which is invisible inside a 30~FPS pipeline. The two key hyperparameters, the penalty coefficient $C$ and the kernel parameter $\gamma$, are optimized via grid search combined with 5-fold stratified cross-validation on the training partition. The search space covers $C \in \{0.1, 1, 10, 100\}$ and $\gamma \in \{\texttt{scale}, \texttt{auto}, 0.01, 0.1, 1\}$. The optimal configuration is found at $C = 10$
 and $\gamma = \texttt{scale}$,
 with a cross-validation accuracy of 74.8\% measured at the default decision threshold during hyperparameter search. Table~\ref{tab:svm_performance} reports the per-class breakdown on the held-out 20\% validation set after the decision threshold is shifted toward recall (discussed below), which is why its summed accuracy is lower than the 74.8\% CV figure.
 
@@ -269,19 +303,19 @@ Stage~A reduces the candidate pool by rejecting interactions with insufficient k
 
 Violent interactions in surveillance footage are characterized by subtle, spatially compact patterns of physical contact: rapid limb movements, forceful body displacements, and close-range interpersonal dynamics. These cues are easily occluded by neighboring persons or obscured by cluttered backgrounds. Modeling them needs a spatial encoder that can resolve fine-grained local structure while still capturing contextual relationships across the whole interaction region.
 
-The Swin Transformer~\cite{9710580} satisfies both requirements through its hierarchical, window-based self-attention design. Each ROI frame $I_t \in \mathbb{R}^{H \times W \times 3}$ is partitioned into non-overlapping patches, which are projected to embedding vectors via a linear layer. The backbone comprises four stages; at each stage, patch merging progressively halves the spatial resolution while doubling the channel dimension, constructing a multi-scale feature hierarchy. Within each stage, Transformer blocks alternate between window-based multi-head self-attention (W-MSA), which captures intra-window structure at low computational cost, and shifted window-based multi-head self-attention (SW-MSA), which establishes cross-window information exchange. The early stages of this hierarchy retain high-resolution spatial detail, which matters for resolving joint-level interactions such as hand contact or arm extension. Deeper stages then aggregate these local cues into semantically richer representations of body posture and group configuration.
+The Swin Transformer~\cite{9710580} satisfies both requirements through its hierarchical, window-based self-attention design. Each ROI frame $I_t \in \mathbb{R}^{H \times W \times 3}$, where $H \times W = 224 \times 224$~px is the spatial resolution after ROI resizing and the third dimension stores the three RGB channels, is partitioned into non-overlapping patches, which are projected to embedding vectors via a linear layer. (We reuse the symbols $H$ and $W$ for image height and width because that is the standard convention in vision papers; they are unrelated to the bounding-box height $H_t$ from Eq.~\ref{eq:velocity}.) The backbone comprises four stages; at each stage, patch merging progressively halves the spatial resolution while doubling the channel dimension, constructing a multi-scale feature hierarchy. Within each stage, Transformer blocks alternate between window-based multi-head self-attention (W-MSA), which captures intra-window structure at low computational cost, and shifted window-based multi-head self-attention (SW-MSA), which establishes cross-window information exchange. The early stages of this hierarchy retain high-resolution spatial detail, which matters for resolving joint-level interactions such as hand contact or arm extension. Deeper stages then aggregate these local cues into semantically richer representations of body posture and group configuration.
 
 The output of the Swin backbone for each ROI frame $I_t$ is a spatial feature map $F_t$, which is condensed into a single frame-level descriptor via global average pooling (GAP):
 \begin{equation}
 F_t = f_{\text{swin}}(I_t), \quad z_t = \text{GAP}(F_t) \in \mathbb{R}^d
 \end{equation}
 
-\noindent To standardize the descriptor dimension across backbone variants, $z_t$ is passed through a linear projection layer:
+\noindent where $f_{\text{swin}}(\cdot)$ denotes the full forward pass of the Swin backbone, $F_t$ is the resulting multi-channel spatial feature map taken at the deepest stage, and $d$ is the channel dimension at that stage ($d = 768$ for Swin~Tiny). GAP averages $F_t$ over its spatial dimensions and returns a single $d$-dimensional vector $z_t$ per frame. To standardize the descriptor dimension across backbone variants, $z_t$ is passed through a linear projection layer:
 \begin{equation}
 \tilde{z}_t = Wz_t + b, \quad \tilde{z}_t \in \mathbb{R}^{d_0}
 \end{equation}
 
-\noindent where $d_0 = 768$ in our implementation, matching the hidden dimension of the Temporal Transformer encoder.
+\noindent where $W \in \mathbb{R}^{d_0 \times d}$ is a learnable projection matrix, $b \in \mathbb{R}^{d_0}$ is a learnable bias vector, and $d_0 = 768$ matches the hidden dimension of the Temporal Transformer encoder defined in Section~III-B-2. The matrix $W$ here is the projection weight; it is unrelated to the image-width notation $W$ used in the input shape above. When the Swin variant already outputs at $d = 768$ this layer reduces to an identity (we keep it as an explicit step so the same code path works with Swin~Small or larger backbones).
 
 Restricting Swin encoding to the Stage~A-filtered ROIs rather than the full video frame has two practical effects. The reduction in spatial extent decreases the number of patch tokens processed per forward pass, which keeps throughput high on a continuous CCTV stream. Confining attention computation to the interaction region also suppresses interference from background motion (passersby, vegetation, traffic) that would otherwise dilute the feature representation and raise the false-positive rate downstream.
 
@@ -352,7 +386,7 @@ Stage~B only sees ROIs that Stage~A has already forwarded, so it never has to pr
 
 We deliberately keep spatial and temporal modeling separate. Swin is pretrained on ImageNet~\cite{deng_imagenet_2009} and fine-tuned as a feature extractor, while the Temporal Transformer is trained from scratch on our ROI clip dataset. Splitting the two means each module solves a smaller, better-defined problem, and we have found this easier to optimize than the jointly-trained 3D convolutional alternatives we tried earlier.
 
-The cascade design has two practical benefits that build on each other. Because Stage~B only sees the filtered ROI subset, average GPU utilization per video stays well below what an unconstrained deep recognizer would need on every detected person-group crop. The spatial gating from Stage~A also gives Stage~B a cleaner input distribution: clips that arrive here have already passed a kinematic sanity check, so the easy non-violent samples are gone and the deep classifier can spend its capacity on the truly ambiguous cases.
+The cascade design has two practical benefits that build on each other. Because Stage~B only sees the filtered ROI subset, average GPU utilization per video stays well below what an unconstrained deep recognizer would need on every detected person-group crop. The spatial gating from Stage~A also gives Stage~B a cleaner input distribution: clips that arrive here have already passed a kinematic sanity check, so the easy non-violent samples are gone and the deep classifier can spend its capacity on the ambiguous cases that are actually hard.
 
 
 \section{Experimental Results}
@@ -463,7 +497,7 @@ Fig.~\ref{fig:evaluation_metrics}(b) details the per-class breakdown. Of 574 non
 {\small (a) ROC curve}\\[0.8em]
 \includegraphics[width=0.85\columnwidth]{image/confusion_matrix.png}\\[0.3em]
 {\small (b) Confusion matrix}
-\caption{Quantitative evaluation metrics: (a) ROC curve demonstrating strong class separability, and (b) Confusion matrix detailing class-wise predictions.}
+\caption{Quantitative evaluation metrics on the 1{,}149-clip test set: (a) ROC curve with AUC = 92.04, and (b) confusion matrix with the per-class counts.}
 \label{fig:evaluation_metrics}
 \end{figure}
 
