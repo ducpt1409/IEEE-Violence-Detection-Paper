@@ -124,7 +124,7 @@ T_{adaptive} = K \times \frac{H_i + H_j}{2}
 \label{eq:adaptive_threshold}
 \end{equation}
 
-\noindent where $H_i$ and $H_j$ are the bounding-box heights (in pixels) of persons $i$ and $j$ at the current frame, and $K > 0$ is a scaling factor that controls how generous the rule is: a smaller $K$ produces tighter thresholds and rejects more pairs, while a larger $K$ groups more aggressively. We use $K = 1.50$ across all experiments; the sensitivity sweep in Section~IV-E confirms that this value sits at the F1 peak. We use height (not width or area) because under perspective, height scales most cleanly with depth: a person twice as far from the camera appears roughly half as tall, while width also varies with body pose. The rule is self-calibrating in practice: distant subjects produce small boxes and small thresholds, nearby subjects produce large ones, and what counts as "close enough to interact" stays consistent regardless of where the person stands in the frame.
+\noindent In Eq.~\ref{eq:adaptive_threshold}, $H_i$ and $H_j$ are the bounding-box heights (in pixels) of persons $i$ and $j$ at the current frame, and $K > 0$ is a scaling factor that controls how generous the rule is: a smaller $K$ produces tighter thresholds and rejects more pairs, while a larger $K$ groups more aggressively. We use $K = 1.50$ across all experiments; the sensitivity sweep in Section~IV-E confirms that this value sits at the F1 peak. We use height (not width or area) because under perspective, height scales most cleanly with depth: a person twice as far from the camera appears roughly half as tall, while width also varies with body pose. The rule is self-calibrating in practice: distant subjects produce small boxes and small thresholds, nearby subjects produce large ones, and what counts as "close enough to interact" stays consistent regardless of where the person stands in the frame.
 
 \begin{figure}[!htbp]
     \centering
@@ -163,16 +163,20 @@ v_t = \frac{\sqrt{(x_t - x_{t-1})^2 + (y_t - y_{t-1})^2}}{H_t} \times \text{FPS}
 \label{eq:velocity}
 \end{equation}
 
-\noindent In this equation, $(x_t, y_t)$ are the pixel coordinates of the bounding-box center for the tracked person at frame $t$; $H_t$ is the box height at the same frame; and FPS is the frame rate of the source video. The numerator $\sqrt{(x_t-x_{t-1})^2+(y_t-y_{t-1})^2}$ is the per-frame Euclidean displacement of the centroid in pixels. Dividing by $H_t$ makes the quantity scale-invariant under perspective: a person twice as far from the camera appears about half as tall, so the same body movement also covers half as many pixels, and the ratio stays roughly constant. Multiplying by FPS converts the unit from pixels-per-frame to body-lengths-per-second, so the metric is comparable across sources captured at $30$~FPS, $60$~FPS, or anything in between.
+\noindent In Eq.~\ref{eq:velocity}, $(x_t, y_t)$ are the pixel coordinates of the bounding-box center for the tracked person at frame $t$; $H_t$ is the box height at the same frame; and FPS is the frame rate of the source video. The numerator $\sqrt{(x_t-x_{t-1})^2+(y_t-y_{t-1})^2}$ is the per-frame Euclidean displacement of the centroid in pixels. Dividing by $H_t$ makes the quantity scale-invariant under perspective: a person twice as far from the camera appears about half as tall, so the same body movement also covers half as many pixels, and the ratio stays roughly constant. Multiplying by FPS converts the unit from pixels-per-frame to body-lengths-per-second, so the metric is comparable across sources captured at $30$~FPS, $60$~FPS, or anything in between.
 
-From $v_t$ we derive the per-frame acceleration $a_t$ and the movement direction angle $\theta_t$:
+From $v_t$ we derive two more per-frame quantities. The first is the acceleration
 \begin{equation}
-a_t = (v_t - v_{t-1}) \times \mathrm{FPS}, \quad
+a_t = (v_t - v_{t-1}) \times \mathrm{FPS},
+\label{eq:acceleration}
+\end{equation}
+and the second is the movement direction angle
+\begin{equation}
 \theta_t = \arctan\!2\bigl(y_t - y_{t-1},\; x_t - x_{t-1}\bigr).
-\label{eq:accel_angle}
+\label{eq:angle}
 \end{equation}
 
-\noindent The acceleration $a_t$ is a finite-difference approximation of the time derivative of $v_t$: the term $(v_t - v_{t-1})$ is the change in normalized velocity between consecutive frames, and the extra FPS factor converts the result from per-frame to per-second units. The resulting unit is body-lengths per second squared, which is also the unit of force per unit mass and is the quantity that actually matters when we look for impact events. The angle $\theta_t$ uses the two-argument $\arctan\!2(\Delta y, \Delta x)$ rather than the single-argument $\arctan(\Delta y / \Delta x)$ because the two-argument form returns the correct quadrant of motion in the full range $(-\pi, \pi]$; this matters for the directional-chaos statistic $S_{\mathrm{interaction}}$ defined in Section~III-A-4, which must distinguish two persons moving in opposite directions (a difference of $\pi$ in $\theta$) from two persons moving in the same direction (identical $\theta$).
+\noindent Eq.~\ref{eq:acceleration} defines $a_t$ as a finite-difference approximation of the time derivative of $v_t$: the term $(v_t - v_{t-1})$ is the change in normalized velocity between consecutive frames, and the extra FPS factor converts the result from per-frame to per-second units. The resulting unit is body-lengths per second squared, which is also the unit of force per unit mass and is the quantity that actually matters when we look for impact events. The angle in Eq.~\ref{eq:angle} uses the two-argument $\arctan\!2(\Delta y, \Delta x)$ rather than the single-argument $\arctan(\Delta y / \Delta x)$ because the two-argument form returns the correct quadrant of motion in the full range $(-\pi, \pi]$; this matters for the directional-chaos statistic $S_{\mathrm{interaction}}$ defined in Section~III-A-4, which must distinguish two persons moving in opposite directions (a difference of $\pi$ in $\theta$) from two persons moving in the same direction (identical $\theta$).
 
 The three per-person series $\{v_t, a_t, \theta_t\}$ feed the aggregation step described in Section~III-A-4 below.
 
@@ -180,14 +184,24 @@ The three per-person series $\{v_t, a_t, \theta_t\}$ feed the aggregation step d
 
 Bounding-box centroids capture how the whole body moves, but they miss the limb-level activity that often signals a fight: a thrown punch, a swung arm, a quick kick. To recover those signals we run Farneback dense optical flow~\cite{farneback_2003} between consecutive frames $I_{t-1}$ and $I_t$. We convert both frames to grayscale first because the optical-flow estimate only depends on intensity gradients and color channels add cost without helping accuracy.
 
-The flow estimate produces a motion vector $\bigl(u(x, y),\; v(x, y)\bigr)$ at every pixel $(x, y)$, where $u(x, y)$ is the horizontal displacement (in pixels) of the image content at pixel $(x, y)$ between frame $t-1$ and frame $t$, and $v(x, y)$ is the corresponding vertical displacement. From this vector field we build a single-channel "heatmap" by taking the per-pixel magnitude:
-
+The Farneback algorithm computes the flow by approximating the grayscale intensity inside a small neighborhood of each pixel with a quadratic polynomial. Let $\mathbf{p} \in \mathbb{R}^2$ denote a position offset from the pixel of interest $(x, y)$; the local model is
 \begin{equation}
-M(x, y) = \sqrt{u(x, y)^2 + v(x, y)^2}
+f(\mathbf{p}) \;\approx\; \mathbf{p}^\top A \mathbf{p} + \mathbf{b}^\top \mathbf{p} + c,
+\label{eq:farneback_poly}
+\end{equation}
+In Eq.~\ref{eq:farneback_poly}, $A \in \mathbb{R}^{2 \times 2}$ is the (symmetric) quadratic coefficient matrix, $\mathbf{b} \in \mathbb{R}^2$ is the linear coefficient vector, and $c \in \mathbb{R}$ is the constant term. We fit one polynomial $f_{t-1}$ to $I_{t-1}$ and one $f_t$ to $I_t$ in the same neighborhood. Since a pure translation of the image leaves the quadratic shape unchanged, the two fits share the same $A$ but differ in their linear coefficients $\mathbf{b}_{t-1}$ and $\mathbf{b}_t$. Under that translation, Farneback~\cite{farneback_2003} shows that the linear-coefficient relation $\mathbf{b}_t = \mathbf{b}_{t-1} - 2 A \mathbf{d}$ holds for the displacement $\mathbf{d} = (u, v)^\top$, which gives the per-pixel flow vector
+\begin{equation}
+\begin{pmatrix} u(x, y) \\ v(x, y) \end{pmatrix} \;=\; \tfrac{1}{2}\, A^{-1}(x, y)\, \bigl(\mathbf{b}_{t-1}(x, y) - \mathbf{b}_t(x, y)\bigr).
+\label{eq:flow_solution}
+\end{equation}
+In Eq.~\ref{eq:flow_solution}, the coefficients $A$ and $\mathbf{b}$ are obtained by a least-squares fit on a small window around each pixel; the resulting flow $(u(x, y), v(x, y))$ is then smoothed with a Gaussian kernel to stabilize ill-conditioned cases where $A$ is close to singular. We use the OpenCV implementation of Farneback with its default parameters. Note that the symbol $v$ in $(u, v)$ refers to the vertical optical-flow component, following the standard computer-vision convention; it is distinct from the per-person normalized velocity $v_t$ defined in Eq.~\ref{eq:velocity}, which is a scalar indexed by frame rather than by pixel.
+
+From this vector field we build a single-channel "heatmap" by taking the per-pixel magnitude:
+\begin{equation}
+M(x, y) = \sqrt{u(x, y)^2 + v(x, y)^2},
 \label{eq:heatmap_magnitude}
 \end{equation}
-
-\noindent $M(x, y)$ has the same spatial dimensions as the input frame and acts as a per-pixel motion-energy map: pixels where things are moving fast (punches, kicks, swinging limbs) have large $M$, while pixels with static content (walls, parked objects) have $M \approx 0$. Inside the ROI this gives us a localized motion picture that the box centroid alone cannot produce. Optical flow has a long history as a complementary motion cue in both action recognition~\cite{simonyan_two-stream_2014} and violence detection~\cite{gracia_fast_2015}, and we use it here in the same spirit.
+In Eq.~\ref{eq:heatmap_magnitude}, $M(x, y)$ is the Euclidean length of the displacement vector at pixel $(x, y)$, also measured in pixels. $M$ has the same spatial dimensions as the input frame and acts as a per-pixel motion-energy map: pixels where things are moving fast (punches, kicks, swinging limbs) have large $M$, while pixels with static content (walls, parked objects) have $M \approx 0$. Inside the group's ROI this gives us a localized motion picture that the box centroid alone cannot produce. Optical flow has a long history as a complementary motion cue in both action recognition~\cite{simonyan_two-stream_2014} and violence detection~\cite{gracia_fast_2015}, and we use it here in the same spirit.
 
 \subsubsection{Feature Vector Aggregation and Dynamic Analysis}
 A single frame rarely tells us whether a fight is happening; a punch is a sequence of acceleration, contact, and recoil that plays out over several frames. We therefore work in windows of $N = 10$ frames and reduce the per-frame physical signals inside each window to a small fixed-size summary. The summary we use is a 7-dimensional vector $V_{raw}$:
@@ -198,20 +212,20 @@ V_{raw} = [\mu_v, \sigma_v, \mu_a, A_{max}, S_{interaction}, \mu_{heat}, \sigma_
 \end{equation}
 
 \noindent To define each component, let $\mathcal{G}$ denote the set of tracked persons in an interaction group, $\mathcal{W}$ the set of $N = 10$ consecutive frame indices in the sliding window, and $\mathcal{S} = \{(p, \tau) : p \in \mathcal{G}, \tau \in \mathcal{W}\}$ the set of all (person, frame) measurements taken in that window (so $|\mathcal{S}| = N \cdot |\mathcal{G}|$ when no tracks are missing). Let $\mathcal{R}$ be the pixel set of the group's ROI, which is the union of the bounding boxes of all members of $\mathcal{G}$ across the window, padded by $15\%$ to retain peripheral context. The seven components of $V_{raw}$ are then computed as
-\begin{equation}
-\begin{aligned}
-\mu_v &= \tfrac{1}{|\mathcal{S}|}\!\!\sum_{(p,\tau)\in\mathcal{S}}\!\! v_\tau^{(p)}, \\
-\sigma_v &= \sqrt{\tfrac{1}{|\mathcal{S}|}\!\!\sum_{(p,\tau)}\!\! \bigl(v_\tau^{(p)}-\mu_v\bigr)^{2}}, \\
-\mu_a &= \tfrac{1}{|\mathcal{S}|}\!\!\sum_{(p,\tau)}\!\! a_\tau^{(p)}, \quad
-A_{\max} = \!\!\max_{(p,\tau)\in\mathcal{S}}\!\! a_\tau^{(p)}, \\
-S_{\mathrm{interaction}} &= \mathrm{std}_{\mathrm{circ}}\!\bigl(\{\theta_\tau^{(p)}\}_{(p,\tau)\in\mathcal{S}}\bigr), \\
-\mu_{\mathrm{heat}} &= \tfrac{1}{|\mathcal{R}|}\!\!\sum_{(x,y)\in\mathcal{R}}\!\! M(x,y), \\
-\sigma_{\mathrm{heat}} &= \sqrt{\tfrac{1}{|\mathcal{R}|}\!\!\sum_{(x,y)}\!\! \bigl(M(x,y)-\mu_{\mathrm{heat}}\bigr)^{2}},
-\end{aligned}
+\begin{subequations}
 \label{eq:aggregation}
-\end{equation}
+\begin{align}
+\mu_v &= \tfrac{1}{|\mathcal{S}|}\!\!\sum_{(p,\tau)\in\mathcal{S}}\!\! v_\tau^{(p)}, \label{eq:mu_v}\\
+\sigma_v &= \sqrt{\tfrac{1}{|\mathcal{S}|}\!\!\sum_{(p,\tau)}\!\! \bigl(v_\tau^{(p)}-\mu_v\bigr)^{2}}, \label{eq:sigma_v}\\
+\mu_a &= \tfrac{1}{|\mathcal{S}|}\!\!\sum_{(p,\tau)}\!\! a_\tau^{(p)}, \label{eq:mu_a}\\
+A_{\max} &= \!\!\max_{(p,\tau)\in\mathcal{S}}\!\! a_\tau^{(p)}, \label{eq:A_max}\\
+S_{\mathrm{interaction}} &= \mathrm{std}_{\mathrm{circ}}\!\bigl(\{\theta_\tau^{(p)}\}_{(p,\tau)\in\mathcal{S}}\bigr), \label{eq:S_int}\\
+\mu_{\mathrm{heat}} &= \tfrac{1}{|\mathcal{R}|}\!\!\sum_{(x,y)\in\mathcal{R}}\!\! M(x,y), \label{eq:mu_heat}\\
+\sigma_{\mathrm{heat}} &= \sqrt{\tfrac{1}{|\mathcal{R}|}\!\!\sum_{(x,y)}\!\! \bigl(M(x,y)-\mu_{\mathrm{heat}}\bigr)^{2}}. \label{eq:sigma_heat}
+\end{align}
+\end{subequations}
 
-\noindent where $v_\tau^{(p)}$, $a_\tau^{(p)}$, and $\theta_\tau^{(p)}$ are the per-frame quantities defined in Eq.~\ref{eq:velocity} and Eq.~\ref{eq:accel_angle} for person $p$ at frame $\tau$; $M(x, y)$ is the optical-flow magnitude from Eq.~\ref{eq:heatmap_magnitude}; and $\mathrm{std}_{\mathrm{circ}}(\cdot)$ denotes the circular standard deviation of an angle set. We use the circular variant because $\theta \in (-\pi, \pi]$ is cyclic: a linear standard deviation would label two nearly identical angles like $-179^\circ$ and $179^\circ$ as $358^\circ$ apart, when in fact they are only $2^\circ$ apart.
+\noindent In Eqs.~\ref{eq:mu_v}--\ref{eq:sigma_heat}, $v_\tau^{(p)}$, $a_\tau^{(p)}$, and $\theta_\tau^{(p)}$ are the per-frame quantities defined in Eq.~\ref{eq:velocity}, Eq.~\ref{eq:acceleration}, and Eq.~\ref{eq:angle} for person $p$ at frame $\tau$; $M(x, y)$ is the optical-flow magnitude from Eq.~\ref{eq:heatmap_magnitude}; and $\mathrm{std}_{\mathrm{circ}}(\cdot)$ denotes the circular standard deviation of an angle set. We use the circular variant because $\theta \in (-\pi, \pi]$ is cyclic: a linear standard deviation would label two nearly identical angles like $-179^\circ$ and $179^\circ$ as $358^\circ$ apart, when in fact they are only $2^\circ$ apart.
 
 Each of the seven components captures a distinct motion property. The choice of statistic for each component reflects a specific failure mode we wanted the descriptor to handle:
 
@@ -258,7 +272,7 @@ K(x_i, x_j) = \exp\bigl(-\gamma \|x_i - x_j\|^2\bigr)
 \label{eq:rbf_kernel}
 \end{equation}
 
-\noindent where $x_i, x_j \in \mathbb{R}^7$ are two normalized $V_{raw}$ feature vectors (the input to the SVM), $\|x_i - x_j\|$ is their Euclidean distance, and $\gamma > 0$ is a kernel-width hyperparameter that controls how quickly the similarity drops with distance. We picked SVM-RBF~\cite{cortes_svm_1995} for this gating step over alternatives like a small MLP or a tree ensemble. The feature space here is only 7-dimensional, so we are not in a regime where deep learning has any advantage. The RBF kernel handles the nonlinear separation between violent and non-violent windows well in our experiments. And SVM inference is essentially free at our feature size: a few dot products against the support vectors cost less than 1~ms per window, which is invisible inside a 30~FPS pipeline. The two key hyperparameters, the penalty coefficient $C$ and the kernel parameter $\gamma$, are optimized via grid search combined with 5-fold stratified cross-validation on the training partition. The search space covers $C \in \{0.1, 1, 10, 100\}$ and $\gamma \in \{\texttt{scale}, \texttt{auto}, 0.01, 0.1, 1\}$. The optimal configuration is found at $C = 10$
+\noindent In Eq.~\ref{eq:rbf_kernel}, $x_i, x_j \in \mathbb{R}^7$ are two normalized $V_{raw}$ feature vectors (the input to the SVM), $\|x_i - x_j\|$ is their Euclidean distance, and $\gamma > 0$ is a kernel-width hyperparameter that controls how quickly the similarity drops with distance. We picked SVM-RBF~\cite{cortes_svm_1995} for this gating step over alternatives like a small MLP or a tree ensemble. The feature space here is only 7-dimensional, so we are not in a regime where deep learning has any advantage. The RBF kernel handles the nonlinear separation between violent and non-violent windows well in our experiments. And SVM inference is essentially free at our feature size: a few dot products against the support vectors cost less than 1~ms per window, which is invisible inside a 30~FPS pipeline. The two key hyperparameters, the penalty coefficient $C$ and the kernel parameter $\gamma$, are optimized via grid search combined with 5-fold stratified cross-validation on the training partition. The search space covers $C \in \{0.1, 1, 10, 100\}$ and $\gamma \in \{\texttt{scale}, \texttt{auto}, 0.01, 0.1, 1\}$. The optimal configuration is found at $C = 10$
 and $\gamma = \texttt{scale}$,
 with a cross-validation accuracy of 74.8\% measured at the default decision threshold during hyperparameter search. Table~\ref{tab:svm_performance} reports the per-class breakdown on the held-out 20\% validation set after the decision threshold is shifted toward recall (discussed below), which is why its summed accuracy is lower than the 74.8\% CV figure.
 
@@ -308,14 +322,16 @@ The Swin Transformer~\cite{9710580} satisfies both requirements through its hier
 The output of the Swin backbone for each ROI frame $I_t$ is a spatial feature map $F_t$, which is condensed into a single frame-level descriptor via global average pooling (GAP):
 \begin{equation}
 F_t = f_{\text{swin}}(I_t), \quad z_t = \text{GAP}(F_t) \in \mathbb{R}^d
+\label{eq:swin_gap}
 \end{equation}
 
-\noindent where $f_{\text{swin}}(\cdot)$ denotes the full forward pass of the Swin backbone, $F_t$ is the resulting multi-channel spatial feature map taken at the deepest stage, and $d$ is the channel dimension at that stage ($d = 768$ for Swin~Tiny). GAP averages $F_t$ over its spatial dimensions and returns a single $d$-dimensional vector $z_t$ per frame. To standardize the descriptor dimension across backbone variants, $z_t$ is passed through a linear projection layer:
+\noindent In Eq.~\ref{eq:swin_gap}, $f_{\text{swin}}(\cdot)$ denotes the full forward pass of the Swin backbone, $F_t$ is the resulting multi-channel spatial feature map taken at the deepest stage, and $d$ is the channel dimension at that stage ($d = 768$ for Swin~Tiny). GAP averages $F_t$ over its spatial dimensions and returns a single $d$-dimensional vector $z_t$ per frame. To standardize the descriptor dimension across backbone variants, $z_t$ is passed through a linear projection layer:
 \begin{equation}
 \tilde{z}_t = Wz_t + b, \quad \tilde{z}_t \in \mathbb{R}^{d_0}
+\label{eq:projection}
 \end{equation}
 
-\noindent where $W \in \mathbb{R}^{d_0 \times d}$ is a learnable projection matrix, $b \in \mathbb{R}^{d_0}$ is a learnable bias vector, and $d_0 = 768$ matches the hidden dimension of the Temporal Transformer encoder defined in Section~III-B-2. The matrix $W$ here is the projection weight; it is unrelated to the image-width notation $W$ used in the input shape above. When the Swin variant already outputs at $d = 768$ this layer reduces to an identity (we keep it as an explicit step so the same code path works with Swin~Small or larger backbones).
+\noindent In Eq.~\ref{eq:projection}, $W \in \mathbb{R}^{d_0 \times d}$ is a learnable projection matrix, $b \in \mathbb{R}^{d_0}$ is a learnable bias vector, and $d_0 = 768$ matches the hidden dimension of the Temporal Transformer encoder defined in Section~III-B-2. The matrix $W$ here is the projection weight; it is unrelated to the image-width notation $W$ used in the input shape above. When the Swin variant already outputs at $d = 768$ this layer reduces to an identity (we keep it as an explicit step so the same code path works with Swin~Small or larger backbones).
 
 Restricting Swin encoding to the Stage~A-filtered ROIs rather than the full video frame has two practical effects. The reduction in spatial extent decreases the number of patch tokens processed per forward pass, which keeps throughput high on a continuous CCTV stream. Confining attention computation to the interaction region also suppresses interference from background motion (passersby, vegetation, traffic) that would otherwise dilute the feature representation and raise the false-positive rate downstream.
 
@@ -376,7 +392,7 @@ The pooled vector $g$ is passed through a two-layer MLP with a hidden dimension 
 \label{eq:bce_loss}
 \end{equation}
 
-\noindent where $\hat{y}$ is the raw logit output of the MLP and $y \in \{0, 1\}$ is the ground-truth violence label.
+\noindent In Eq.~\ref{eq:bce_loss}, $\hat{y}$ is the raw logit output of the MLP, $y \in \{0, 1\}$ is the ground-truth violence label, and $\sigma(z) = 1/(1+e^{-z})$ is the sigmoid function.
 
 Temporal self-attention gives us two concrete practical benefits over frame-level or recurrent classifiers. By jointly attending to all frames, the encoder can pick up approach-contact-recoil transitions whose decisive signal is spread across non-adjacent frames, which LSTM hidden states often fail to preserve intact over 16 time steps. The absence of sequential computation also removes the dependency on error-free tracking continuity: a missed detection on one or two frames does not corrupt the representation of the rest of the clip, because each token is encoded independently before attention is applied.
 
@@ -439,7 +455,7 @@ The combined pool has 5,746 clips, split evenly between violent and non-violent 
 
 
 
-Table~\ref{tab:exp_dataset} details the source composition. Table~\ref{tab:test_dataset_description} visualizes the core metadata distributions. The unified benchmark contains resolutions from standard 640$\times$480 to 1280$\times$720 HD. Clip lengths heavily concentrate between 2:37 and 4:00. This structural diversity forces models to handle extreme hardware variations.
+Table~\ref{tab:exp_dataset} details the source composition. Table~\ref{tab:test_dataset_description} shows a representative sample of test clips together with their resolution, length, scene description, and label. The unified benchmark contains resolutions from standard 640$\times$480 to 1280$\times$720 HD. Clip lengths heavily concentrate between 2:37 and 4:00. This structural diversity forces models to handle extreme hardware variations.
 
 \begin{table}[!htbp]
 \centering
@@ -589,7 +605,7 @@ To check that the system is not over-tuned to specific hyperparameter values, we
 
 Table~\ref{tab:sensitivity} shows the trend. Performance peaks at the default values and falls off in a predictable way at either end. For $K$, the smaller value of $1.00$ under-groups people in crowded scenes, so fewer real interactions reach Stage~B and F1 drops by 3.8 points; $K=2.00$ over-groups unrelated bystanders and trades 1.7 F1 points for the wrong reason. For $N$, a 5-frame window does not give the SVM enough kinematic evidence to be reliable, while a 20-frame window adds latency without improving accuracy. For $T$, going from 16 to 32 frames only buys 0.4 F1 points but doubles Stage~B's per-clip cost, which is why we kept the default at 16.
 
-\subsection{Performance on Unified In-the-Wild Dataset}
+\subsection{Comparison with State-of-the-Art Baselines}
 
 \begin{table}[!htbp]
 \centering
