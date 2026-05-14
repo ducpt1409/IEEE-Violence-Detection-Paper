@@ -319,6 +319,24 @@ Violent interactions in surveillance footage are characterized by subtle, spatia
 
 The Swin Transformer~\cite{9710580} satisfies both requirements through its hierarchical, window-based self-attention design. Each ROI frame $I_t \in \mathbb{R}^{H \times W \times 3}$, where $H \times W = 224 \times 224$~px is the spatial resolution after ROI resizing and the third dimension stores the three RGB channels, is partitioned into non-overlapping patches, which are projected to embedding vectors via a linear layer. (We reuse the symbols $H$ and $W$ for image height and width because that is the standard convention in vision papers; they are unrelated to the bounding-box height $H_t$ from Eq.~\ref{eq:velocity}.) The backbone comprises four stages; at each stage, patch merging progressively halves the spatial resolution while doubling the channel dimension, constructing a multi-scale feature hierarchy. Within each stage, Transformer blocks alternate between window-based multi-head self-attention (W-MSA), which captures intra-window structure at low computational cost, and shifted window-based multi-head self-attention (SW-MSA), which establishes cross-window information exchange. The early stages of this hierarchy retain high-resolution spatial detail, which matters for resolving joint-level interactions such as hand contact or arm extension. Deeper stages then aggregate these local cues into semantically richer representations of body posture and group configuration.
 
+Within each stage, features are refined by a pair of consecutive Transformer blocks. The first block applies W-MSA; the second applies SW-MSA over windows shifted by half the window size to enable cross-window communication:
+\begin{align}
+\hat{z}^{l}   &= \text{W-MSA}\!\left(\text{LN}(z^{l-1})\right) + z^{l-1}, \label{eq:wmsa_pre} \\
+z^{l}         &= \text{MLP}\!\left(\text{LN}(\hat{z}^{l})\right) + \hat{z}^{l}, \label{eq:wmsa_post} \\
+\hat{z}^{l+1} &= \text{SW-MSA}\!\left(\text{LN}(z^{l})\right) + z^{l}, \label{eq:swmsa_pre} \\
+z^{l+1}       &= \text{MLP}\!\left(\text{LN}(\hat{z}^{l+1})\right) + \hat{z}^{l+1}. \label{eq:swmsa_post}
+\end{align}
+
+\noindent In Eqs.~\ref{eq:wmsa_pre}--\ref{eq:swmsa_post}, $z^{l-1}$ is the input token sequence to the $l$-th block, LN denotes layer normalization, and MLP is a two-layer feed-forward network with GELU activation. The residual connections in each block stabilize gradient flow across the four-stage hierarchy.
+
+Within each MSA block the attention is computed as:
+\begin{equation}
+\text{Attention}(Q, K, V) = \text{SoftMax}\!\left(\frac{QK^{\top}}{\sqrt{d_k}} + B\right)V,
+\label{eq:swin_attention}
+\end{equation}
+
+\noindent where $Q, K, V \in \mathbb{R}^{N \times d_k}$ are the query, key, and value matrices ($N$ is the number of tokens in the window and $d_k$ is the per-head dimension), and $B \in \mathbb{R}^{N \times N}$ is a learnable relative position bias matrix indexed by the relative spatial offset between each token pair. For Swin~Tiny with window size $M = 7$, each window contains $N = M^2 = 49$ patch tokens, so $B \in \mathbb{R}^{49 \times 49}$. $B$ encodes geometric relationships between patch positions, allowing the model to capture local spatial dynamics within each interaction region without relying solely on absolute positional encodings.
+
 The output of the Swin backbone for each ROI frame $I_t$ is a spatial feature map $F_t$, which is condensed into a single frame-level descriptor via global average pooling (GAP):
 \begin{equation}
 F_t = f_{\text{swin}}(I_t), \quad z_t = \text{GAP}(F_t) \in \mathbb{R}^d
@@ -365,14 +383,34 @@ H^0 = Z + P
 \label{eq:positional_encoding}
 \end{equation}
 
-\noindent The input $H^0$ is then processed by $L$ successive Transformer encoder layers, each comprising multi-head self-attention (MHSA) over the temporal axis followed by a position-wise feed-forward sublayer and residual connections:
+\noindent The input $H^0$ is then processed by $L$ successive Transformer encoder layers, each comprising Temporal Multi-Head Attention (TMHA) over the temporal axis followed by a position-wise feed-forward sublayer and residual connections. Within each layer $\ell$, the token sequence $H^{\ell-1} \in \mathbb{R}^{T \times d_0}$ is first projected into query, key, and value matrices:
+\begin{align}
+Q &= H^{\ell-1}W_Q, \label{eq:proj_q} \\
+K &= H^{\ell-1}W_K, \label{eq:proj_k} \\
+V &= H^{\ell-1}W_V, \label{eq:proj_v}
+\end{align}
+
+\noindent where $W_Q, W_K, W_V \in \mathbb{R}^{d_0 \times d_k}$ are learnable projection matrices and $d_k = d_0 / h = 96$ is the per-head dimension. The resulting $Q, K, V \in \mathbb{R}^{T \times d_k}$ are then passed to a single attention head. With $h = 8$ parallel heads, the outputs are concatenated and projected back:
 
 \begin{equation}
-H^\ell = \text{TransformerEnc}(H^{\ell-1}), \quad \ell = 1, \ldots, L
-\label{eq:transformer_layer}
+\text{TMHA}(Q, K, V) = \text{SoftMax}\!\left(\frac{QK^{\top}}{\sqrt{d_k}}\right)V
+\label{eq:tmha}
 \end{equation}
 
-\noindent In our configuration, $L = 2$ encoder layers are used, each with $h = 8$ attention heads operating on the full $d_0 = 768$-dimensional space (head dimension $d_k = 96$). A dropout rate of $p = 0.1$ is applied to both the attention weights and the feed-forward activations within each layer to mitigate overfitting on the relatively compact ROI clip dataset.
+\begin{equation}
+\text{MultiHead}(H^{\ell-1}) = \text{Concat}(\text{head}_1, \ldots, \text{head}_h)\,W_O
+\label{eq:multihead}
+\end{equation}
+
+\noindent where each $\text{head}_i = \text{TMHA}(H^{\ell-1}W_{Q_i},\, H^{\ell-1}W_{K_i},\, H^{\ell-1}W_{V_i})$ and $W_O \in \mathbb{R}^{h d_k \times d_0}$ is a learnable output projection. The score matrix $QK^{\top} \in \mathbb{R}^{T \times T}$ assigns a scalar weight to every ordered frame pair $(t_i, t_j)$, directly connecting any two positions in the clip.
+
+Each encoder layer completes the forward pass with layer normalization and residual connections around both the attention and feed-forward sublayers:
+\begin{align}
+\hat{H}^{\ell} &= \text{MultiHead}(\text{LN}(H^{\ell-1})) + H^{\ell-1}, \label{eq:temp_attn_res} \\
+H^{\ell}       &= \text{FFN}(\text{LN}(\hat{H}^{\ell})) + \hat{H}^{\ell}, \label{eq:temp_ffn_res}
+\end{align}
+
+\noindent where FFN is a two-layer feed-forward network with hidden dimension $4d_0 = 3072$ and GELU activation, applied position-wise along the temporal axis. In our configuration, $L = 2$ such layers are stacked, each with $h = 8$ attention heads (head dimension $d_k = 96$). A dropout rate of $p = 0.1$ is applied to both attention weights and FFN activations within each layer to mitigate overfitting on the relatively compact ROI clip dataset.
 
 Self-attention scores every pair of temporal positions $(t_i, t_j)$ directly, so the encoder can pull evidence from the approach phase, the contact frame, and the recoil phase at once instead of relaying information through a hidden state. This is the main reason we picked a Transformer over an LSTM here: gradients no longer have to flow along a long chain of time steps, which is where recurrent encoders tend to lose signal on our 16-frame clips.
 
