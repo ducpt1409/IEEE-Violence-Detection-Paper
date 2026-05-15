@@ -557,6 +557,46 @@ Fig.~\ref{fig:evaluation_metrics}(b) details the per-class breakdown. Of 574 non
 
 The FP/FN asymmetry (61 vs.\ 40) is an intentional outcome of how we calibrate Stage~A's thresholds. In real surveillance, a missed violent event is much more costly than a spurious alert that an operator can dismiss in seconds. Stage~A is therefore tuned conservatively so that boundary-case groups get forwarded to Stage~B instead of being silently dropped.
 
+Beyond aggregate metrics, it is instructive to examine what the pipeline actually produces on individual clips. Fig.~\ref{fig:output_examples} presents three representative inference results drawn from the test partition, each annotated with the system's final prediction and the detection bounding boxes assigned by Stage~A.
+
+\begin{figure}[!htbp]
+    \centering
+    \begin{subfigure}[b]{0.48\columnwidth}
+        \centering
+        \includegraphics[width=\linewidth]{image/case_non_vio.jpg}
+        \caption{\textcolor{green}{\textbf{Non-Violent}} (pair): two pedestrians assigned to independent singleton tracks; inter-person distance exceeds $T_{adaptive}$, so no interaction group is formed and Stage~A is not triggered.}
+        \label{fig:out_nv}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\columnwidth}
+        \centering
+        \includegraphics[width=\linewidth]{image/case_vio.jpg}
+        \caption{\textcolor{red}{\textbf{Violent}} (pair): bilateral altercation flagged as \textit{Group~1\,--\,Violence} (conf.$= 0.88$). Red ROI box enclosing both fighters is forwarded to Stage~B for deep confirmation.}
+        \label{fig:out_v2}
+    \end{subfigure}
+
+    \vspace{0.25cm}
+
+    \begin{subfigure}[b]{0.48\columnwidth}
+        \centering
+        \includegraphics[width=\linewidth]{image/case_agroup_vio.jpg}
+        \caption{\textcolor{red}{\textbf{Violent}} (group): four-person brawl unified into a single \textit{Group~1\,--\,Violence} ROI (det. conf.$= 0.72$--$0.88$). High $A_{max}$ and $S_{interaction}$ activate Stage~A.}
+        \label{fig:out_vg}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\columnwidth}
+        \centering
+        \includegraphics[width=\linewidth]{image/case_group_non_vio.jpg}
+        \caption{\textcolor{green}{\textbf{Non-Violent}} (group): five pedestrians split into three independent groups (Group~1--3, blue boxes). Cohesive motion within each group keeps all kinematic features below thresholds.}
+        \label{fig:out_nvg}
+    \end{subfigure}
+
+    \caption{Representative pipeline outputs on four held-out test clips. Green/blue group boxes denote non-violent predictions; red boxes denote violence alerts produced by Stage~A. (a)~Pair walking independently: singleton tracks, Stage~A silent. (b)~Two-person fight: red ROI issued by Stage~A, violence confirmed by Temporal Transformer (conf.$= 0.88$). (c)~Four-person brawl: all participants merged into one violent ROI with per-person detection confidence. (d)~Non-violent group traversal: five pedestrians correctly partitioned into three separate non-violent interaction groups.}
+    \label{fig:output_examples}
+\end{figure}
+
+The four cases jointly illustrate how the cascade discriminates across interaction complexity levels. In scenario~(a), two pedestrians walk independently: the inter-person distance exceeds $T_{adaptive}$ for their respective bounding box scales, each is assigned a singleton track, and Stage~A performs no kinematic analysis. Scenario~(b) is the canonical two-person violent event---the abrupt body displacement during the strike generates an $A_{max}$ spike above the physics threshold, causing Stage~A to form an interaction group and issue a preliminary alert; Stage~B then processes the 16-frame ROI clip and confirms the label at confidence 0.88. Scenario~(c) scales the problem to four participants: adaptive grouping merges all of them into a single ROI because every pairwise distance falls within $T_{adaptive}$, and the resulting kinematic chaos produces a confident group-level violence prediction. Scenario~(d) is the hardest true negative: five pedestrians form three proximate groups, yet within each group the motion is slow and directionally coherent, keeping $A_{max}$ and $\sigma_{heat}$ below both physics thresholds and correctly suppressing the Stage~A alert. The 40 missed detections (FN) in the full test set are predominantly slow-escalation exchanges that look kinematically similar to scenario~(d) until the decisive impact frame arrives.
+
 Table~\ref{tab:latency} presents a component-wise latency breakdown measured on the RTX~2080~Ti. Stage~A components (YOLOv8, DeepSORT, optical flow, SVM) process every incoming frame in $\sim$18~ms (about 55~FPS) and run continuously. Stage~B is triggered only for the filtered candidate subset, averaging 41.72~ms per 16-frame clip. Across the test set, Stage~B activates for an average of 2.1~ROI clips per video. For a typical 30~FPS source stream lasting around 5~seconds (150 frames), the amortized Stage~B contribution is $2.1 \times 41.72 / 150 \approx 0.58$~ms per CCTV frame. The effective per-frame latency is therefore Stage~A~($\sim$18~ms) plus the amortized Stage~B overhead, yielding a sustained throughput of \textbf{53~FPS} on a continuous CCTV stream, well above the 30~FPS that most CCTV cameras produce. Under heavier violent-event load the throughput drops to about \textbf{48~FPS}, which still leaves headroom over the source frame rate.
 
 \begin{table}[!htbp]
