@@ -30,19 +30,21 @@
 \title{A Multi-Stage Violence Detection Framework for CCTV Surveillance Using Swin Transformer and Temporal Transformer}
 
 \author{
-\IEEEauthorblockN{Nhu Thai Ha\textsuperscript{1},
-Tien Duc Pham\textsuperscript{2},
-Minh Duc Nguyen\textsuperscript{3},
-Huu Chinh Le\textsuperscript{4},
-Manh Dung Nguyen\textsuperscript{5,*}}
-\IEEEauthorblockA{\textit{Posts and Telecommunications Institute of Technology} \\
-Hanoi, Vietnam \\
-\textsuperscript{1}nhuthai1510@gmail.com,
-\textsuperscript{2}ducpt@ptit.edu.vn,
-\textsuperscript{3}duc.bc2005@gmail.com, \\
-\textsuperscript{4}chinh.lh54@gmail.com,
-\textsuperscript{5}dungnm1@ptit.edu.vn \\
-\textsuperscript{*}Corresponding author: Manh Dung Nguyen (dungnm1@ptit.edu.vn)}
+\IEEEauthorblockN{
+% Nhu Thai Ha\textsuperscript{1},
+% Tien Duc Pham\textsuperscript{2},
+% Minh Duc Nguyen\textsuperscript{3},
+% Huu Chinh Le\textsuperscript{4},
+% Manh Dung Nguyen\textsuperscript{5,*}}
+% \IEEEauthorblockA{\textit{Posts and Telecommunications Institute of Technology} \\
+% Hanoi, Vietnam \\
+% \textsuperscript{1}nhuthai1510@gmail.com,
+% \textsuperscript{2}ducpt@ptit.edu.vn,
+% \textsuperscript{3}duc.bc2005@gmail.com, \\
+% \textsuperscript{4}chinh.lh54@gmail.com,
+% \textsuperscript{5}dungnm1@ptit.edu.vn \\
+% \textsuperscript{*}Corresponding author: Manh Dung Nguyen (dungnm1@ptit.edu.vn)
+}
 }
 
 \maketitle
@@ -557,7 +559,7 @@ Fig.~\ref{fig:evaluation_metrics}(b) details the per-class breakdown. Of 574 non
 
 The FP/FN asymmetry (61 vs.\ 40) is an intentional outcome of how we calibrate Stage~A's thresholds. In real surveillance, a missed violent event is much more costly than a spurious alert that an operator can dismiss in seconds. Stage~A is therefore tuned conservatively so that boundary-case groups get forwarded to Stage~B instead of being silently dropped.
 
-Beyond aggregate metrics, it is instructive to examine what the pipeline actually produces on individual clips. Fig.~\ref{fig:output_examples} presents three representative inference results drawn from the test partition, each annotated with the system's final prediction and the detection bounding boxes assigned by Stage~A.
+Aggregate metrics tell us how the system performs on average; per-clip outputs tell us how it actually behaves on individual cases. Fig.~\ref{fig:output_examples} shows four representative inference results from the test partition, each annotated with the system's final prediction and the detection bounding boxes assigned by Stage~A.
 
 \begin{figure}[!htbp]
     \centering
@@ -595,7 +597,7 @@ Beyond aggregate metrics, it is instructive to examine what the pipeline actuall
     \label{fig:output_examples}
 \end{figure}
 
-The four cases jointly illustrate how the cascade discriminates across interaction complexity levels. In scenario~(a), two pedestrians walk independently: the inter-person distance exceeds $T_{adaptive}$ for their respective bounding box scales, each is assigned a singleton track, and Stage~A performs no kinematic analysis. Scenario~(b) is the canonical two-person violent event---the abrupt body displacement during the strike generates an $A_{max}$ spike above the physics threshold, causing Stage~A to form an interaction group and issue a preliminary alert; Stage~B then processes the 16-frame ROI clip and confirms the label at confidence 0.88. Scenario~(c) scales the problem to four participants: adaptive grouping merges all of them into a single ROI because every pairwise distance falls within $T_{adaptive}$, and the resulting kinematic chaos produces a confident group-level violence prediction. Scenario~(d) is the hardest true negative: five pedestrians form three proximate groups, yet within each group the motion is slow and directionally coherent, keeping $A_{max}$ and $\sigma_{heat}$ below both physics thresholds and correctly suppressing the Stage~A alert. The 40 missed detections (FN) in the full test set are predominantly slow-escalation exchanges that look kinematically similar to scenario~(d) until the decisive impact frame arrives.
+The four cases span the interaction-complexity range the cascade is designed to handle. In scenario~(a), two pedestrians walk past each other: the inter-person distance exceeds $T_{adaptive}$ for their respective bounding box scales, each is assigned a singleton track, and Stage~A performs no kinematic analysis. Scenario~(b) is a standard two-person fight. The abrupt body displacement during the strike pushes $A_{max}$ above the physics threshold, Stage~A forms an interaction group and issues a preliminary alert, and Stage~B then processes the 16-frame ROI clip and confirms the label at confidence 0.88. Scenario~(c) extends the problem to four participants: every pairwise distance falls within $T_{adaptive}$, so adaptive grouping merges all of them into a single ROI, and the elevated $A_{max}$ together with high $S_{interaction}$ produce a confident group-level violence prediction. Scenario~(d) is the trickiest true negative we observed: five pedestrians form three proximate groups, but within each group the motion is slow and directionally coherent, so both $A_{max}$ and $\mu_{heat}$ stay below the physics thresholds and Stage~A correctly stays silent. Most of the 40 missed detections (FN) in the full test set look kinematically similar to scenario~(d) until the decisive impact frame arrives, which is why slow-escalation footage remains the hardest failure mode of the system.
 
 Table~\ref{tab:latency} presents a component-wise latency breakdown measured on the RTX~2080~Ti. Stage~A components (YOLOv8, DeepSORT, optical flow, SVM) process every incoming frame in $\sim$18~ms (about 55~FPS) and run continuously. Stage~B is triggered only for the filtered candidate subset, averaging 41.72~ms per 16-frame clip. Across the test set, Stage~B activates for an average of 2.1~ROI clips per video. For a typical 30~FPS source stream lasting around 5~seconds (150 frames), the amortized Stage~B contribution is $2.1 \times 41.72 / 150 \approx 0.58$~ms per CCTV frame. The effective per-frame latency is therefore Stage~A~($\sim$18~ms) plus the amortized Stage~B overhead, yielding a sustained throughput of \textbf{53~FPS} on a continuous CCTV stream, well above the 30~FPS that most CCTV cameras produce. Under heavier violent-event load the throughput drops to about \textbf{48~FPS}, which still leaves headroom over the source frame rate.
 
