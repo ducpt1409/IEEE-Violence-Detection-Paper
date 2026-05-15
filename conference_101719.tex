@@ -335,7 +335,7 @@ Within each MSA block the attention is computed as:
 \label{eq:swin_attention}
 \end{equation}
 
-\noindent where $Q, K, V \in \mathbb{R}^{N \times d_k}$ are the query, key, and value matrices ($N$ is the number of tokens in the window and $d_k$ is the per-head dimension), and $B \in \mathbb{R}^{N \times N}$ is a learnable relative position bias matrix indexed by the relative spatial offset between each token pair. For Swin~Tiny with window size $M = 7$, each window contains $N = M^2 = 49$ patch tokens, so $B \in \mathbb{R}^{49 \times 49}$. $B$ encodes geometric relationships between patch positions, allowing the model to capture local spatial dynamics within each interaction region without relying solely on absolute positional encodings.
+\noindent where $Q, K, V \in \mathbb{R}^{N \times d_k}$ are the query, key, and value matrices ($N$ is the number of tokens in the window and $d_k$ is the per-head dimension), and $B \in \mathbb{R}^{N \times N}$ is a learnable relative position bias matrix indexed by the relative spatial offset between each token pair. For Swin~Tiny with window size $M = 7$, each window contains $N = M^2 = 49$ patch tokens, so $B \in \mathbb{R}^{49 \times 49}$. $B$ encodes the relative spatial offset between every pair of patch positions, so the attention picks up local spatial structure inside each window without needing absolute positional encodings.
 
 The output of the Swin backbone for each ROI frame $I_t$ is a spatial feature map $F_t$, which is condensed into a single frame-level descriptor via global average pooling (GAP):
 \begin{equation}
@@ -402,7 +402,7 @@ V &= H^{\ell-1}W_V, \label{eq:proj_v}
 \label{eq:multihead}
 \end{equation}
 
-\noindent where each $\text{head}_i = \text{TMHA}(H^{\ell-1}W_{Q_i},\, H^{\ell-1}W_{K_i},\, H^{\ell-1}W_{V_i})$ and $W_O \in \mathbb{R}^{h d_k \times d_0}$ is a learnable output projection. The score matrix $QK^{\top} \in \mathbb{R}^{T \times T}$ assigns a scalar weight to every ordered frame pair $(t_i, t_j)$, directly connecting any two positions in the clip.
+\noindent where each head $i$ has its own learnable projections $W_{Q_i}, W_{K_i}, W_{V_i} \in \mathbb{R}^{d_0 \times d_k}$, and $W_O \in \mathbb{R}^{h d_k \times d_0}$ is a learnable output projection that combines all $h$ head outputs back into the $d_0$-dimensional embedding space. The score matrix $QK^{\top} \in \mathbb{R}^{T \times T}$ assigns a scalar weight to every ordered frame pair $(t_i, t_j)$, directly connecting any two positions in the clip.
 
 Each encoder layer completes the forward pass with layer normalization and residual connections around both the attention and feed-forward sublayers:
 \begin{align}
